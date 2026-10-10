@@ -1,5 +1,3 @@
-export type PullRequest = { number: number; title: string; author: string; state: string }
-
 export type CheckState = 'pass' | 'fail' | 'pending' | 'skip'
 export type Check = { name: string; state: CheckState; url: string | null }
 export type Reviewer = { login: string; state: string }
@@ -39,7 +37,6 @@ export type PrInfoResult = { status: 'ready'; info: PrInfo; fetchedAt: number } 
 declare module 'claude-code' {
   interface PluginState {
     'clps-claude-code-mod': {
-      pr: PullRequest | null
       info: PrInfoResult | null
       isLoading: boolean
       toggled: string[]

@@ -1,0 +1,14 @@
+{
+  "name": "ui-themes",
+  "description": "Dracula theme for Claude Code",
+  "owner": {
+    "name": "streetclips"
+  },
+  "plugins": [
+    {
+      "name": "ui-themes",
+      "source": "./",
+      "description": "Dracula theme for Claude Code: message boxes and markdown colours."
+    }
+  ]
+}

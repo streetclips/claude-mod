@@ -1,4 +1,4 @@
-# ui-themes
+# clps-claude-code-mod
 
 Dracula theme for the Claude Code terminal UI, forked from [yugal1107/ui-themes](https://github.com/yugal1107/ui-themes):
 
@@ -10,8 +10,8 @@ Code blocks and tables keep Claude Code's own rendering. While a reply streams, 
 ## Install
 
 ```
-/plugin marketplace add streetclips/claude-ui-themes
-/plugin install ui-themes@ui-themes
+/plugin marketplace add streetclips/clps-claude-code-mod
+/plugin install clps-claude-code-mod@clps-claude-code-mod
 ```
 
 ## Colours

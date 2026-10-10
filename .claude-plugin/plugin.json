@@ -1,5 +1,5 @@
 {
-  "name": "ui-themes",
-  "version": "0.6.0",
+  "name": "clps-claude-code-mod",
+  "version": "0.7.0",
   "description": "Dracula theme for Claude Code: padded prompt/reply boxes and coloured markdown."
 }

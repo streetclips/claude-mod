@@ -15,6 +15,7 @@ async function refresh($: EngineInterface) {
       return { number, title, author: author.login, state }
     })
     .catch(() => null)
+  if (JSON.stringify(await read($, pr)) === JSON.stringify(found)) return
   await update($, pr, () => found)
 }
 

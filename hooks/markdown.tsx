@@ -1,15 +1,16 @@
 // A small markdown renderer with our own colours, for replies.
 // Tables fall back to the engine's Markdown element.
 
-// Dracula palette: https://draculatheme.com/contribute
+import { DRACULA } from './palette'
+
 export const MD: Record<'code' | 'bold' | 'heading' | 'link' | 'bullet' | 'quote' | 'rule', string> = {
-  code: '#50fa7b',
-  bold: '#ffb86c',
-  heading: '#bd93f9',
-  link: '#8be9fd',
-  bullet: '#ff79c6',
-  quote: '#6272a4',
-  rule: '#6272a4',
+  code: DRACULA.green,
+  bold: DRACULA.orange,
+  heading: DRACULA.purple,
+  link: DRACULA.cyan,
+  bullet: DRACULA.pink,
+  quote: DRACULA.comment,
+  rule: DRACULA.comment,
 }
 
 type El = any

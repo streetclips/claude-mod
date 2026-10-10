@@ -5,7 +5,7 @@ Claude Code plugin that draws prompts and replies in Dracula-coloured boxes. Cla
 ## Shipping a change
 
 1. Bump `version` in `.claude-plugin/plugin.json` (patch for colour tweaks, minor for behaviour). Claude Code caches each install under `plugins/cache/ui-themes/ui-themes/<version>/`, so an unchanged version keeps serving the old code.
-2. Run `claude plugin validate .` and `claude plugin test .`; both pass before committing. The missing-`author` warning is expected.
+2. Run `claude plugin validate .` and `claude plugin test .`; both pass before committing. The warnings about the missing `author` and the root `CLAUDE.md` are expected.
 3. Commit and `git push`.
 4. Tell the user to run, inside Claude Code:
    ```

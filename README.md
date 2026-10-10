@@ -10,10 +10,10 @@ Code blocks and tables keep Claude Code's own rendering. While a reply streams, 
 ## Install
 
 ```
-/plugin marketplace add ~/Documents/Projects/alejandro/claude-ui-themes
+/plugin marketplace add streetclips/claude-ui-themes
 /plugin install ui-themes@ui-themes
 ```
 
 ## Colours
 
-Edit `PROMPT_BG` and `REPLY_BG` in `hooks/register.tsx` and `MD` in `hooks/markdown.tsx`, then run `/reload-plugins`.
+Edit `PROMPT_BG` and `REPLY_BG` in `hooks/register.tsx` and `MD` in `hooks/markdown.tsx`, then follow "Shipping a change" in `CLAUDE.md`.

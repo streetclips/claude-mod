@@ -1,5 +1,6 @@
 {
   "name": "clps-claude-code-mod",
-  "version": "0.7.0",
-  "description": "Dracula theme for Claude Code: padded prompt/reply boxes and coloured markdown."
+  "version": "0.8.0",
+  "description": "Dracula theme for Claude Code: padded prompt/reply boxes and coloured markdown.",
+  "types": "./types/index.d.ts"
 }

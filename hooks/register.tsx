@@ -2,13 +2,16 @@ import type { Register } from 'claude-code'
 
 import { renderMarkdown } from './markdown'
 import { DRACULA } from './palette'
+import { registerPrBand } from './pr-band'
 
 export function formatDuration(ms: number) {
   const s = Math.round(ms / 1000)
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  registerPrBand(on, options)
+
   // Your prompts: padded box in the prompt colour
   on('ui.render', { component: 'UserMessage' }, ($, e, next) => {
     // skip task notifications and messages from other agents; style everything you sent (live or resumed)

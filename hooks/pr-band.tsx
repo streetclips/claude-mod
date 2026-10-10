@@ -35,11 +35,11 @@ export const registerPrBand: Register = on => {
     if (e.props.hasSurvey || current === null) return next(e)
     const { Box, Text } = $.ui.resolve(e)
     return (
-      <Box>
-        <Text color={DRACULA.purple}>{`#${current.number} `}</Text>
-        <Text color={DRACULA.foreground}>{current.title}</Text>
-        <Text color={DRACULA.comment}>{` · @${current.author}`}</Text>
-        {current.state !== 'OPEN' && <Text color={DRACULA.orange}>{` · ${current.state.toLowerCase()}`}</Text>}
+      <Box flexDirection="row" marginBottom={-1}>
+        <Box flexShrink={0}><Text color={DRACULA.purple}>{`#${current.number} `}</Text></Box>
+        <Box flexShrink={1}><Text color={DRACULA.foreground} wrap="truncate-end">{current.title}</Text></Box>
+        <Box flexShrink={0}><Text color={DRACULA.comment}>{` · @${current.author}`}</Text></Box>
+        {current.state !== 'OPEN' && <Box flexShrink={0}><Text color={DRACULA.orange}>{` · ${current.state.toLowerCase()}`}</Text></Box>}
       </Box>
     )
   })

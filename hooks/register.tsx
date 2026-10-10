@@ -2,7 +2,7 @@ import type { Register } from 'claude-code'
 
 import { renderMarkdown } from './markdown'
 import { DRACULA } from './palette'
-import { registerPrBand } from './pr-band'
+import { registerPr } from './pr'
 
 export function formatDuration(ms: number) {
   const s = Math.round(ms / 1000)
@@ -10,7 +10,7 @@ export function formatDuration(ms: number) {
 }
 
 export const register: Register = (on, options) => {
-  registerPrBand(on, options)
+  registerPr(on, options)
 
   // Your prompts: padded box in the prompt colour
   on('ui.render', { component: 'UserMessage' }, ($, e, next) => {

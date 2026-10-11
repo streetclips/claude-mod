@@ -3,14 +3,11 @@ import type { Register } from 'claude-code'
 import { renderMarkdown } from './markdown'
 import { DRACULA } from './palette'
 import { registerPr } from './pr'
-
-export function formatDuration(ms: number) {
-  const s = Math.round(ms / 1000)
-  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`
-}
+import { registerTurnStats } from './turn-stats'
 
 export const register: Register = (on, options) => {
   registerPr(on, options)
+  registerTurnStats(on, options)
 
   // Your prompts: padded box in the prompt colour
   on('ui.render', { component: 'UserMessage' }, ($, e, next) => {
@@ -31,16 +28,6 @@ export const register: Register = (on, options) => {
     return (
       <Box backgroundColor={DRACULA.background} paddingX={2} paddingY={1} marginTop={1}>
         {renderMarkdown(e.props.text, t)}
-      </Box>
-    )
-  })
-
-  // Turn footer: just the duration, dim
-  on('ui.render', { component: 'TurnDuration' }, ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
-    return (
-      <Box marginTop={1}>
-        <Text color={DRACULA.comment}>⏱ {formatDuration(e.props.durationMs)}</Text>
       </Box>
     )
   })

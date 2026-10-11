@@ -32,6 +32,15 @@ export type PrInfo = {
   notes: Note[]
   threads: Thread[]
 }
+export type FileChange = { added: number; removed: number }
+export type TurnStats = {
+  inputTokens: number
+  outputTokens: number
+  costUsd: number | null
+  contextDelta: number | null
+  tools: number
+  files: Record<string, FileChange>
+}
 export type PrInfoResult = { status: 'ready'; info: PrInfo; fetchedAt: number } | { status: 'none'; message: string }
 
 declare module 'claude-code' {
@@ -40,6 +49,7 @@ declare module 'claude-code' {
       info: PrInfoResult | null
       isLoading: boolean
       toggled: string[]
+      turns: Record<string, TurnStats>
     }
   }
 }

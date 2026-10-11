@@ -1,0 +1,158 @@
+import { atom, read, update } from 'claude-code'
+import type { EngineInterface, Register, ToolCallResult, TurnCompleteInput } from 'claude-code'
+
+import type { FileChange, TurnStats } from '../types'
+import { DRACULA } from './palette'
+
+const KEEP = 200
+
+const turns = atom({ plugin: 'clps-claude-code-mod', key: 'turns' } as const, {})
+
+type Running = {
+  costUsd: number | null
+  contextTokens: number | null
+  tools: number
+  files: Record<string, FileChange>
+}
+
+let running: Running | null = null
+
+export function formatDuration(ms: number) {
+  const s = Math.round(ms / 1000)
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`
+}
+
+export function formatTokens(n: number) {
+  const abs = Math.abs(n)
+  const short = (value: number, unit: string) => `${value.toFixed(Math.abs(value) < 10 ? 1 : 0).replace(/\.0$/, '')}${unit}`
+  if (abs < 1000) return `${n}`
+  if (abs < 1_000_000) return short(n / 1000, 'k')
+  return short(n / 1_000_000, 'M')
+}
+
+export function formatCost(usd: number) {
+  return usd < 0.01 ? '<$0.01' : `$${usd.toFixed(2)}`
+}
+
+export function countPatch(patch: readonly { lines: readonly string[] }[]) {
+  let added = 0
+  let removed = 0
+  for (const hunk of patch) {
+    for (const line of hunk.lines) {
+      if (line.startsWith('+')) added++
+      else if (line.startsWith('-')) removed++
+    }
+  }
+  return { added, removed }
+}
+
+function countLines(text: string) {
+  if (!text) return 0
+  return text.split('\n').length - (text.endsWith('\n') ? 1 : 0)
+}
+
+export function fileChange(tool: string, result: unknown): { path: string; added: number; removed: number } | null {
+  const r = result as any
+  if (!r || r.staged) return null
+  if (tool === 'Edit') return { path: r.filePath, ...countPatch(r.structuredPatch ?? []) }
+  if (tool === 'Write') {
+    const patch = r.structuredPatch ?? []
+    if (r.type === 'create' && patch.length === 0) return { path: r.filePath, added: countLines(r.content), removed: 0 }
+    return { path: r.filePath, ...countPatch(patch) }
+  }
+  if (tool === 'NotebookEdit' && !r.error) return { path: r.notebook_path, added: 0, removed: 0 }
+  return null
+}
+
+async function measure($: EngineInterface) {
+  const usage = await $.session.usage().catch(() => null)
+  return { costUsd: usage?.cost?.usd ?? null, contextTokens: usage?.context.tokens ?? null }
+}
+
+const delta = (end: number | null, start: number | null) => (end === null || start === null ? null : end - start)
+
+export function renderStats(stats: TurnStats, Text: any) {
+  const sep = <Text color={DRACULA.comment}> · </Text>
+  const files = Object.keys(stats.files).length
+  let added = 0
+  let removed = 0
+  for (const change of Object.values(stats.files)) {
+    added += change.added
+    removed += change.removed
+  }
+  return [
+    sep,
+    <Text color={DRACULA.comment}>↑{formatTokens(stats.inputTokens)} ↓{formatTokens(stats.outputTokens)}</Text>,
+    ...(stats.costUsd === null ? [] : [sep, <Text color={DRACULA.comment}>{formatCost(stats.costUsd)}</Text>]),
+    ...(stats.contextDelta === null
+      ? []
+      : [sep, <Text color={DRACULA.comment}>ctx {stats.contextDelta >= 0 ? '+' : ''}{formatTokens(stats.contextDelta)}</Text>]),
+    sep,
+    <Text color={DRACULA.comment}>{stats.tools} {stats.tools === 1 ? 'tool' : 'tools'}</Text>,
+    ...(files === 0
+      ? []
+      : [
+          sep,
+          <Text color={DRACULA.comment}>{files} {files === 1 ? 'file' : 'files'} </Text>,
+          <Text color={DRACULA.green}>+{added}</Text>,
+          <Text color={DRACULA.comment}> </Text>,
+          <Text color={DRACULA.red}>-{removed}</Text>,
+        ]),
+  ]
+}
+
+async function recordTurn($: EngineInterface, e: TurnCompleteInput) {
+  if (e.agentId || !running) return
+  const start = running
+  running = null
+  const end = await measure($)
+  const u = e.usage
+  const stats: TurnStats = {
+    inputTokens: u ? u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens : 0,
+    outputTokens: u?.output_tokens ?? 0,
+    costUsd: delta(end.costUsd, start.costUsd),
+    contextDelta: delta(end.contextTokens, start.contextTokens),
+    tools: start.tools,
+    files: start.files,
+  }
+  await update($, turns, held => {
+    const kept = Object.entries(held).slice(-(KEEP - 1))
+    return { ...Object.fromEntries(kept), [`${e.durationMs}`]: stats }
+  })
+}
+
+export const registerTurnStats: Register = on => {
+  on('turn.start', async ($, e, next) => {
+    running = { ...(await measure($)), tools: 0, files: {} }
+    return next(e)
+  })
+
+  on('tool.call', async ($, e, next) => {
+    const result: ToolCallResult = await next(e)
+    if (!running || e.agentId || 'deny' in result) return result
+    running.tools++
+    if (result.isError) return result
+    const change = fileChange(e.tool, result.result)
+    if (change?.path) {
+      const held = running.files[change.path] ?? { added: 0, removed: 0 }
+      running.files[change.path] = { added: held.added + change.added, removed: held.removed + change.removed }
+    }
+    return result
+  })
+
+  on('turn.complete', { reason: ['answer', 'aborted', 'refusal', 'error'] }, async ($, e, next) => {
+    await recordTurn($, e)
+    return next(e)
+  })
+
+  on('ui.render', { component: 'TurnDuration' }, async ($, e) => {
+    const { Box, Text } = $.ui.resolve(e)
+    const stats = (await read($, turns))[`${e.props.durationMs}`]
+    return (
+      <Box marginTop={1}>
+        <Text color={DRACULA.comment}>⏱ {formatDuration(e.props.durationMs)}</Text>
+        {stats ? renderStats(stats, Text) : null}
+      </Box>
+    )
+  })
+}

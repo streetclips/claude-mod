@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, ToolCallResult, TurnCompleteInput } from 'claude-code'
+import type { EngineInterface, Register, ToolCallInput, ToolCallResult, TurnCompleteInput } from 'claude-code'
 
 import type { FileChange, TurnStats } from '../types'
 import { DRACULA } from './palette'
@@ -121,25 +121,22 @@ async function recordTurn($: EngineInterface, e: TurnCompleteInput) {
   })
 }
 
+export async function startTurnStats($: EngineInterface) {
+  running = { ...(await measure($)), tools: 0, files: {} }
+}
+
+export function countTool(e: ToolCallInput, result: ToolCallResult) {
+  if (!running || e.agentId || 'deny' in result) return
+  running.tools++
+  if (result.isError) return
+  const change = fileChange(e.tool, result.result)
+  if (change?.path) {
+    const held = running.files[change.path] ?? { added: 0, removed: 0 }
+    running.files[change.path] = { added: held.added + change.added, removed: held.removed + change.removed }
+  }
+}
+
 export const registerTurnStats: Register = on => {
-  on('turn.start', async ($, e, next) => {
-    running = { ...(await measure($)), tools: 0, files: {} }
-    return next(e)
-  })
-
-  on('tool.call', async ($, e, next) => {
-    const result: ToolCallResult = await next(e)
-    if (!running || e.agentId || 'deny' in result) return result
-    running.tools++
-    if (result.isError) return result
-    const change = fileChange(e.tool, result.result)
-    if (change?.path) {
-      const held = running.files[change.path] ?? { added: 0, removed: 0 }
-      running.files[change.path] = { added: held.added + change.added, removed: held.removed + change.removed }
-    }
-    return result
-  })
-
   on('turn.complete', { reason: ['answer', 'aborted', 'refusal', 'error'] }, async ($, e, next) => {
     await recordTurn($, e)
     return next(e)

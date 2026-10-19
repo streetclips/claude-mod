@@ -1,13 +1,26 @@
 import type { Register } from 'claude-code'
 
 import { renderMarkdown } from './markdown'
+import { noteTool, noteTurn, registerNarrator } from './narrator'
 import { DRACULA } from './palette'
-import { registerPr } from './pr'
-import { registerTurnStats } from './turn-stats'
+import { countTool, registerTurnStats, startTurnStats } from './turn-stats'
 
 export const register: Register = (on, options) => {
-  registerPr(on, options)
   registerTurnStats(on, options)
+  registerNarrator(on, options)
+
+  on('turn.start', async ($, e, next) => {
+    await startTurnStats($)
+    noteTurn(e)
+    return next(e)
+  })
+
+  on('tool.call', async ($, e, next) => {
+    const result = await next(e)
+    countTool(e, result)
+    await noteTool($, e, result)
+    return result
+  }).catch(($, e, next) => next(e))
 
   // Your prompts: padded box in the prompt colour
   on('ui.render', { component: 'UserMessage' }, ($, e, next) => {

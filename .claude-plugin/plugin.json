@@ -1,6 +1,20 @@
 {
   "name": "clps-claude-code-mod",
-  "version": "0.10.0",
-  "description": "Dracula theme for Claude Code: padded prompt/reply boxes and coloured markdown.",
-  "types": "./types/index.d.ts"
+  "version": "0.11.0",
+  "description": "Dracula theme for Claude Code: padded prompt/reply boxes, coloured markdown and an optional spoken narrator.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "narratorVoice": {
+      "type": "string",
+      "title": "Narrator voice",
+      "description": "A voice name (Mónica, Microsoft Helena) to always speak with. Empty: the best voice installed for the language Claude speaks, or the English one.",
+      "default": ""
+    },
+    "narratorModel": {
+      "type": "string",
+      "title": "Model that writes the narration",
+      "description": "An alias (haiku) or a full model id.",
+      "default": "haiku"
+    }
+  }
 }

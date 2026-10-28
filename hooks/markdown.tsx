@@ -58,13 +58,15 @@ export function renderMarkdown(src: string, t: Table): El {
     if (!line.trim()) { i++; continue }
 
     // ```lang fenced code
-    const fence = line.match(/^\s*```(\S*)/)
+    const fence = line.match(/^\s*(`{3,}|~{3,})\s*([^`\s]*)/)
     if (fence) {
+      const marker = fence[1] ?? '```'
+      const close = new RegExp(`^\\s*${marker[0] === '`' ? '`' : '~'}{${marker.length},}\\s*$`)
       const body: string[] = []
       i++
-      while (i < lines.length && !/^\s*```\s*$/.test(lines[i] ?? '')) body.push(lines[i++] ?? '')
+      while (i < lines.length && !close.test(lines[i] ?? '')) body.push(lines[i++] ?? '')
       i++
-      push(<Code source={body.join('\n')} language={fence[1] || undefined} />)
+      push(<Code source={body.join('\n')} language={fence[2] || undefined} />)
       continue
     }
 
@@ -135,7 +137,7 @@ export function renderMarkdown(src: string, t: Table): El {
     const para: string[] = []
     while (i < lines.length) {
       const l = lines[i] ?? ''
-      if (!l.trim() || /^\s*(```|\||#{1,6}\s|>|([-*+]|\d+[.)])\s)/.test(l)) break
+      if (!l.trim() || /^\s*(```|~~~|\||#{1,6}\s|>|([-*+]|\d+[.)])\s)/.test(l)) break
       para.push(l.trim())
       i++
     }

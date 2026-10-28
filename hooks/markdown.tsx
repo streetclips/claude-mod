@@ -44,6 +44,17 @@ export function inline(s: string, t: Table, keyBase: string): El[] {
   return out
 }
 
+const LIST_ITEM = /^\s*([-*+]|\d+[.)])\s+/
+const BLOCK_START = /^\s*(`{3,}|~{3,}|\||<details>|#{1,6}\s|>)/
+const indentOf = (l: string) => (l.match(/^\s*/)?.[0] ?? '').length
+
+// <b>/<strong>, <i>/<em> and <code> become their markdown; any other tag is dropped
+export const htmlToMarkdown = (s: string) => s
+  .replace(/<\/?(b|strong)>/gi, '**')
+  .replace(/<\/?(i|em)>/gi, '*')
+  .replace(/<\/?code>/gi, '`')
+  .replace(/<\/?[a-z][^>]*>/gi, '')
+
 export function renderMarkdown(src: string, t: Table, details: Details = { open: [], toggle: () => {} }): El {
   const { Box, Text, Code, Markdown, Button } = t
   const lines = src.replace(/\s+$/, '').split('\n')
@@ -94,7 +105,7 @@ export function renderMarkdown(src: string, t: Table, details: Details = { open:
         <Box flexDirection="column">
           <Button key={`details-${index}`} plain onPress={() => details.toggle(index)}>
             <Text color={MD.bullet}>{isOpen ? '▾ ' : '▸ '}</Text>
-            <Text bold>{summary || 'Details'}</Text>
+            <Text bold>{inline(htmlToMarkdown(summary) || 'Details', t, `s${index}`)}</Text>
           </Button>
           {isOpen ? <Box paddingLeft={2} marginTop={1}>{renderMarkdown(body.join('\n'), t)}</Box> : null}
         </Box>,
@@ -139,7 +150,7 @@ export function renderMarkdown(src: string, t: Table, details: Details = { open:
     }
 
     // - / * / 1. lists (with nesting by indent)
-    if (/^\s*([-*+]|\d+[.)])\s+/.test(line)) {
+    if (LIST_ITEM.test(line)) {
       const items: El[] = []
       while (i < lines.length) {
         const l = lines[i] ?? ''
@@ -147,16 +158,42 @@ export function renderMarkdown(src: string, t: Table, details: Details = { open:
         if (m) {
           const depth = Math.floor((m[1] ?? '').length / 2)
           const marker = /\d/.test(m[2] ?? '') ? (m[2] ?? '') : '•'
+          const indent = (m[1] ?? '').length
           let text = m[3] ?? ''
+          const child: string[] = []
+          let fence: string | null = null
           i++
-          // continuation lines indented under the item
-          while (i < lines.length && /^\s{2,}\S/.test(lines[i] ?? '') && !/^\s*([-*+]|\d+[.)])\s+/.test(lines[i] ?? '')) {
-            text += ' ' + (lines[i++] ?? '').trim()
+          // lines indented under the item: plain text continues it, a block (code, table, …) nests under it
+          while (i < lines.length) {
+            const c = lines[i] ?? ''
+            const f = c.match(/^\s*(`{3,}|~{3,})(.*)$/)
+            if (!fence) {
+              if (!c.trim()) {
+                const next = lines.slice(i + 1).find(x => x.trim())
+                if (!child.length || !next || indentOf(next) <= indent || LIST_ITEM.test(next)) break
+                child.push(c)
+                i++
+                continue
+              }
+              if (indentOf(c) <= indent || LIST_ITEM.test(c)) break
+            }
+            if (f) {
+              const mark = f[1] ?? ''
+              if (!fence) fence = mark
+              else if (mark[0] === fence[0] && mark.length >= fence.length && !(f[2] ?? '').trim()) fence = null
+            }
+            if (!child.length && !f && !BLOCK_START.test(c)) text += ' ' + c.trim()
+            else child.push(c)
+            i++
           }
+          const cut = Math.min(...child.filter(x => x.trim()).map(indentOf))
           items.push(
             <Box key={`li${i}`} flexDirection="row" paddingLeft={depth * 2}>
               <Box width={marker.length + 1} flexShrink={0}><Text color={MD.bullet}>{marker}</Text></Box>
-              <Box flexGrow={1} flexShrink={1}><Text>{inline(text, t, `li${i}`)}</Text></Box>
+              <Box flexGrow={1} flexShrink={1} flexDirection="column">
+                <Text>{inline(text, t, `li${i}`)}</Text>
+                {child.length ? <Box marginTop={1}>{renderMarkdown(child.map(x => x.slice(cut)).join('\n'), t)}</Box> : null}
+              </Box>
             </Box>,
           )
         } else break

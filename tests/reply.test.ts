@@ -34,3 +34,19 @@ test('details start collapsed and a press opens them', async ($) => {
   expect(await ui.find({ type: 'Text', text: /Hidden/ })).toBeFalsy()
   await ui.unmount()
 })
+
+test('code and tables indented under a list item nest under it, and summary html becomes markdown', async ($) => {
+  const ui = await $.ui.mount({
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'm4',
+    viewport: { columns: 100, rows: 40 },
+    props: {
+      text: '<details>\n<summary><b>Palette</b></summary>\n\n1. Code:\n   ```bash\n   claude --plugin-dir .\n   ```\n2. Table:\n   | A | B |\n   |---|---|\n   | x | y |\n</details>',
+      isFirstOfReply: true,
+    },
+  } as any)
+  expect(await ui.find({ type: 'Text', text: /<b>/ })).toBeFalsy()
+  await ui.press({ key: 'details-0' })
+  expect(await ui.find({ type: 'Text', text: /```/ })).toBeFalsy()
+  expect(await ui.find({ type: 'Text', text: /\|---/ })).toBeFalsy()
+  await ui.unmount()
+})

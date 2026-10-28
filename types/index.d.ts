@@ -13,6 +13,7 @@ declare module 'claude-code' {
     'clps-claude-code-mod': {
       narratorEnabled: boolean
       turns: Record<string, TurnStats>
+      openDetails: StateFamily<number[]>
     }
   }
 }

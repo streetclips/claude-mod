@@ -19,3 +19,18 @@ test('longer fence keeps inner fences and closes before the next block', async (
   expect(json).toContain('```php')
   expect(json).not.toContain('**Two**')
 })
+
+test('details start collapsed and a press opens them', async ($) => {
+  const ui = await $.ui.mount({
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'm3',
+    viewport: { columns: 100, rows: 40 },
+    props: { text: 'Intro\n<details>\n<summary>More</summary>\nHidden **body**\n</details>', isFirstOfReply: true },
+  } as any)
+  expect(await ui.find({ type: 'Text', text: /More/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /Hidden/ })).toBeFalsy()
+  await ui.press({ key: 'details-0' })
+  expect(await ui.find({ type: 'Text', text: /Hidden/ })).toBeTruthy()
+  await ui.press({ key: 'details-0' })
+  expect(await ui.find({ type: 'Text', text: /Hidden/ })).toBeFalsy()
+  await ui.unmount()
+})

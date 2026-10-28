@@ -14,7 +14,8 @@ export const MD: Record<'code' | 'bold' | 'heading' | 'link' | 'bullet' | 'quote
 }
 
 type El = any
-type Table = { Box: any; Text: any; Link: any; Code: any; Markdown: any }
+type Table = { Box: any; Text: any; Link: any; Code: any; Markdown: any; Button: any }
+export type Details = { open: number[]; toggle: (index: number) => void }
 
 // `code`, **bold**, *italic* / _italic_, [text](url)
 const INLINE = /(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(\[[^\]\n]+\]\([^)\s]+\))|(\*[^*\s][^*\n]*\*)|(\b_[^_\n]+_\b)/g
@@ -43,9 +44,10 @@ export function inline(s: string, t: Table, keyBase: string): El[] {
   return out
 }
 
-export function renderMarkdown(src: string, t: Table): El {
-  const { Box, Text, Code, Markdown } = t
+export function renderMarkdown(src: string, t: Table, details: Details = { open: [], toggle: () => {} }): El {
+  const { Box, Text, Code, Markdown, Button } = t
   const lines = src.replace(/\s+$/, '').split('\n')
+  let detailsCount = 0
   const blocks: El[] = []
   let i = 0
   const push = (el: El) => blocks.push(
@@ -67,6 +69,36 @@ export function renderMarkdown(src: string, t: Table): El {
       while (i < lines.length && !close.test(lines[i] ?? '')) body.push(lines[i++] ?? '')
       i++
       push(<Code source={body.join('\n')} language={fence[2] || undefined} />)
+      continue
+    }
+
+    // <details><summary>…</summary> … </details>, collapsed until pressed
+    if (/^\s*<details>/.test(line)) {
+      const body: string[] = []
+      let summary = ''
+      let rest = line.replace(/^\s*<details>/, '')
+      let depth = 1
+      i++
+      while (true) {
+        const s = rest.match(/^\s*<summary>(.*?)<\/summary>(.*)$/)
+        if (!summary && s) { summary = s[1] ?? ''; rest = s[2] ?? '' }
+        depth += (rest.match(/<details>/g) ?? []).length - (rest.match(/<\/details>/g) ?? []).length
+        if (depth <= 0) { body.push(rest.replace(/<\/details>\s*$/, '')); break }
+        if (rest.trim()) body.push(rest)
+        if (i >= lines.length) break
+        rest = lines[i++] ?? ''
+      }
+      const index = detailsCount++
+      const isOpen = details.open.includes(index)
+      push(
+        <Box flexDirection="column">
+          <Button key={`details-${index}`} plain onPress={() => details.toggle(index)}>
+            <Text color={MD.bullet}>{isOpen ? '▾ ' : '▸ '}</Text>
+            <Text bold>{summary || 'Details'}</Text>
+          </Button>
+          {isOpen ? <Box paddingLeft={2} marginTop={1}>{renderMarkdown(body.join('\n'), t)}</Box> : null}
+        </Box>,
+      )
       continue
     }
 
@@ -137,7 +169,7 @@ export function renderMarkdown(src: string, t: Table): El {
     const para: string[] = []
     while (i < lines.length) {
       const l = lines[i] ?? ''
-      if (!l.trim() || /^\s*(```|~~~|\||#{1,6}\s|>|([-*+]|\d+[.)])\s)/.test(l)) break
+      if (!l.trim() || /^\s*(```|~~~|<details>|\||#{1,6}\s|>|([-*+]|\d+[.)])\s)/.test(l)) break
       para.push(l.trim())
       i++
     }

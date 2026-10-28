@@ -1,6 +1,7 @@
 // A small markdown renderer with our own colours, for replies.
 // Tables fall back to the engine's Markdown element.
 
+import { fileUrl, type FileRef } from './file-links'
 import { DRACULA } from './palette'
 
 export const MD: Record<'code' | 'bold' | 'heading' | 'link' | 'bullet' | 'quote' | 'rule', string> = {
@@ -14,34 +15,73 @@ export const MD: Record<'code' | 'bold' | 'heading' | 'link' | 'bullet' | 'quote
 }
 
 type El = any
-type Table = { Box: any; Text: any; Link: any; Code: any; Markdown: any; Button: any }
+export type Files = { refs: Record<string, FileRef>; open: (ref: FileRef) => Promise<void>; count: number }
+type Table = { Box: any; Text: any; Link: any; Code: any; Markdown: any; Button: any; files?: Files }
 export type Details = { open: number[]; toggle: (index: number) => void }
+type Run = { text: string; style?: Record<string, unknown>; href?: string; file?: FileRef }
 
 // `code`, **bold**, *italic* / _italic_, [text](url)
 const INLINE = /(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(\[[^\]\n]+\]\([^)\s]+\))|(\*[^*\s][^*\n]*\*)|(\b_[^_\n]+_\b)/g
 
-export function inline(s: string, t: Table, keyBase: string): El[] {
-  const { Text, Link } = t
-  const out: El[] = []
+function runs(s: string, t: Table): Run[] {
+  const out: Run[] = []
   let last = 0
-  let k = 0
   for (const m of s.matchAll(INLINE)) {
     const at = m.index ?? 0
-    if (at > last) out.push(s.slice(last, at))
+    if (at > last) out.push({ text: s.slice(last, at) })
     const tok = m[0]
-    const key = `${keyBase}-${k++}`
-    if (m[1]) out.push(<Text key={key} color={MD.code}>{tok.slice(1, -1)}</Text>)
-    else if (m[2]) out.push(<Text key={key} bold color={MD.bold}>{tok.slice(2, -2)}</Text>)
+    if (m[1]) {
+      const code = tok.slice(1, -1)
+      const file = t.files?.refs[code]
+      out.push({ text: code, style: { color: MD.code }, file, href: file && fileUrl(file.path) })
+    } else if (m[2]) out.push({ text: tok.slice(2, -2), style: { bold: true, color: MD.bold } })
     else if (m[3]) {
-      const [, label, href] = tok.match(/^\[([^\]]+)\]\(([^)]+)\)$/) ?? []
-      out.push(/^(https?|file):/.test(href ?? '')
-        ? <Link key={key} href={href}><Text color={MD.link} underline>{label}</Text></Link>
-        : <Text key={key} color={MD.link} underline>{label}</Text>)
-    } else out.push(<Text key={key} italic>{tok.slice(1, -1)}</Text>)
+      const [, label = '', target = ''] = tok.match(/^\[([^\]]+)\]\(([^)]+)\)$/) ?? []
+      const file = t.files?.refs[target]
+      const href = /^(https?|file):/.test(target) ? target : file && fileUrl(file.path)
+      out.push({ text: label, style: { color: MD.link, underline: true }, file, href })
+    } else out.push({ text: tok.slice(1, -1), style: { italic: true } })
     last = at + tok.length
   }
-  if (last < s.length) out.push(s.slice(last))
+  if (last < s.length) out.push({ text: s.slice(last) })
   return out
+}
+
+export function inline(s: string, t: Table, keyBase: string): El[] {
+  const { Text, Link } = t
+  return runs(s, t).map((r, k) => {
+    const key = `${keyBase}-${k}`
+    if (!r.style) return r.text
+    return r.href
+      ? <Link key={key} href={r.href}><Text {...r.style}>{r.text}</Text></Link>
+      : <Text key={key} {...r.style}>{r.text}</Text>
+  })
+}
+
+// a Button cannot sit inside a Text: a line naming files is laid out word by word, each file a Button
+function flow(s: string, t: Table, keyBase: string): El {
+  const { Box, Text, Link, Button } = t
+  const all = runs(s, t)
+  const files = t.files
+  if (!files || !all.some(r => r.file)) return <Text>{inline(s, t, keyBase)}</Text>
+  const items: El[] = []
+  all.forEach((r, k) => {
+    const key = `${keyBase}-${k}`
+    const file = r.file
+    if (file) {
+      items.push(
+        <Button key={`file-${files.count++}`} plain onPress={() => files.open(file)}>
+          <Text {...r.style}>{r.text}</Text>
+        </Button>,
+      )
+    } else if (r.href) items.push(<Text key={key}><Link href={r.href}><Text {...r.style}>{r.text}</Text></Link></Text>)
+    else {
+      for (const [w, word] of (r.text.match(/\s*\S+\s*|\s+/g) ?? []).entries()) {
+        items.push(<Text key={`${key}-${w}`} {...r.style}>{word}</Text>)
+      }
+    }
+  })
+  return <Box flexDirection="row" flexWrap="wrap">{items}</Box>
 }
 
 const LIST_ITEM = /^\s*([-*+]|\d+[.)])\s+/
@@ -191,7 +231,7 @@ export function renderMarkdown(src: string, t: Table, details: Details = { open:
             <Box key={`li${i}`} flexDirection="row" paddingLeft={depth * 2}>
               <Box width={marker.length + 1} flexShrink={0}><Text color={MD.bullet}>{marker}</Text></Box>
               <Box flexGrow={1} flexShrink={1} flexDirection="column">
-                <Text>{inline(text, t, `li${i}`)}</Text>
+                {flow(text, t, `li${i}`)}
                 {child.length ? <Box marginTop={1}>{renderMarkdown(child.map(x => x.slice(cut)).join('\n'), t)}</Box> : null}
               </Box>
             </Box>,
@@ -210,7 +250,7 @@ export function renderMarkdown(src: string, t: Table, details: Details = { open:
       para.push(l.trim())
       i++
     }
-    push(<Text>{inline(para.join(' '), t, `p${i}`)}</Text>)
+    push(flow(para.join(' '), t, `p${i}`))
   }
 
   return <Box flexDirection="column">{blocks}</Box>

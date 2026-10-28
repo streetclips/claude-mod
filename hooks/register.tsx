@@ -1,7 +1,9 @@
 import { atom, memberOf, read, update, type Register } from 'claude-code'
 
+import { fileRefs, type FileRef } from './file-links'
 import { renderMarkdown } from './markdown'
 import { noteTool, noteTurn, registerNarrator } from './narrator'
+import { openFile } from './open-file'
 import { DRACULA } from './palette'
 import { countTool, registerTurnStats, startTurnStats } from './turn-stats'
 
@@ -38,7 +40,9 @@ export const register: Register = (on, options) => {
 
   // Claude's replies: padded box in the reply colour, markdown in Dracula colours
   on('ui.render', { component: 'AssistantMessage' }, async ($, e) => {
-    const t = $.ui.resolve(e)
+    const refs = await fileRefs($, e.props.text).catch(() => ({}))
+    const openRef = (ref: FileRef) => openFile($, ref).catch(err => $.ui.toast(`Could not open ${ref.path}: ${err.message}`))
+    const t = { ...$.ui.resolve(e), files: { refs, open: openRef, count: 0 } }
     const { Box } = t
     const member = memberOf(openDetails, e)
     const open = await read($, member)

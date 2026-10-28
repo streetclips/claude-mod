@@ -4,6 +4,7 @@ Dracula theme for the Claude Code terminal UI, forked from [yugal1107/ui-themes]
 
 - Your prompts and Claude's replies drawn in padded, coloured boxes
 - Reply markdown in Dracula colours (headings, `inline code`, **bold**, links, bullets, quotes)
+- Files and folders a reply names (`hooks/markdown.tsx:36`, `[readme](README.md#L3)`) open with a click: text in [ttt](https://tttedit.dev) at that line, in the ttt already open or in a new [herdr](https://herdr.dev) tab with the session's folder as its workspace; images, video, folders and other binaries with the system's `open`. Clicks reach the plugin only with `"tui": "fullscreen"`; headings and quotes keep an absolute `file://` link for cmd-click
 - Turn footer with duration, tokens, cost, context change, tools and file changes
 - Narrator, adapted from [midudev/better-claude](https://github.com/midudev/better-claude/tree/main/plugins/narrator): after each turn Claude tells you out loud what it did, in your language, with the best free voice your system has (Siri's on macOS, OneCore on Windows, speech-dispatcher or espeak-ng on Linux). Switch it with `⏸︎ narrator off` at the right of the prompt footer or `/narrator [on | off | stop]`; a new prompt cuts it short, and it stays as you left it in later sessions
 
@@ -15,6 +16,10 @@ Code blocks and tables keep Claude Code's own rendering. While a reply streams, 
 /plugin marketplace add streetclips/clps-claude-code-mod
 /plugin install clps-claude-code-mod@clps-claude-code-mod
 ```
+
+## Opening files in ttt
+
+A click opens the file in the ttt already running when ttt can take files from outside (`--new-window` in `ttt --help`, not in a release up to 1.9.0) and `"reuseWindow": true` is set in its `settings.json` (`~/.config/ttt/`); until then each click opens a new herdr tab. Outside herdr, or without ttt installed, every click falls back to `open`.
 
 ## Narrator settings
 

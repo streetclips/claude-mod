@@ -6,7 +6,7 @@ import { DRACULA } from './palette'
 
 const KEEP = 200
 
-const turns = atom({ plugin: 'clps-claude-code-mod', key: 'turns' } as const, {})
+const turns = atom({ plugin: 'dracula', key: 'turns' } as const, {})
 
 type Running = {
   costUsd: number | null

@@ -22,7 +22,7 @@ test('longer fence keeps inner fences and closes before the next block', async (
 
 test('details start collapsed and a press opens them', async ($) => {
   const ui = await $.ui.mount({
-    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'm3',
+    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'm3',
     viewport: { columns: 100, rows: 40 },
     props: { text: 'Intro\n<details>\n<summary>More</summary>\nHidden **body**\n</details>', isFirstOfReply: true },
   } as any)
@@ -37,7 +37,7 @@ test('details start collapsed and a press opens them', async ($) => {
 
 test('code and tables indented under a list item nest under it, and summary html becomes markdown', async ($) => {
   const ui = await $.ui.mount({
-    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'm4',
+    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'm4',
     viewport: { columns: 100, rows: 40 },
     props: {
       text: '<details>\n<summary><b>Palette</b></summary>\n\n1. Code:\n   ```bash\n   claude --plugin-dir .\n   ```\n2. Table:\n   | A | B |\n   |---|---|\n   | x | y |\n</details>',

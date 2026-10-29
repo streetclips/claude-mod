@@ -8,7 +8,7 @@ import { DRACULA } from './palette'
 import { registerStatusLine } from './status-line'
 import { countTool, registerTurnStats, startTurnStats } from './turn-stats'
 
-const openDetails = atom({ plugin: 'clps-claude-code-mod', key: 'openDetails' } as const, [])
+const openDetails = atom({ plugin: 'dracula', key: 'openDetails' } as const, [])
 
 export const register: Register = (on, options) => {
   registerTurnStats(on, options)

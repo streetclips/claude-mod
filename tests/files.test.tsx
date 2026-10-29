@@ -41,7 +41,7 @@ function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = t
 
 async function press($: any, text: string, keys: string[]) {
   const ui = await $.ui.mount({
-    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: text,
+    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: text,
     viewport: { columns: 100, rows: 40 }, props: { text, isFirstOfReply: true },
   })
   for (const key of keys) await ui.press({ key })
@@ -101,7 +101,7 @@ test('file urls are absolute and encoded', () => {
 test('files a reply names become buttons that open them; headings keep a file link', async ($, on) => {
   const ran = fakeHost(on)
   const ui = await $.ui.mount({
-    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'f1',
+    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'f1',
     viewport: { columns: 100, rows: 40 },
     props: {
       text: '# In `README.md`\n\nSee `hooks/markdown.tsx:36`, [readme](README.md#L3), `e.props.text` and `missing/file.ts:9`.',

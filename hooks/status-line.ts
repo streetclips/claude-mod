@@ -1,6 +1,5 @@
 import type { EngineInterface, Register, SessionRateLimit, TurnUsage } from 'claude-code'
 
-import { DRACULA } from './palette'
 import { formatCost, formatTokens } from './turn-stats'
 
 const FAMILIES: Record<string, string> = { opus: 'o', sonnet: 's', haiku: 'h', fable: 'f' }
@@ -23,7 +22,6 @@ export type TurnRates = {
 
 let lastRates: TurnRates = { cachePercent: null, tokensPerSecond: null }
 let lastModel: string | null = null
-let lastLine: string | null = null
 
 export function shorten(name: string) {
   return name.length > 10 ? `${name.slice(0, 4)}**${name.slice(-4)}` : name
@@ -94,21 +92,10 @@ async function paint($: EngineInterface) {
     costUsd: usage?.cost?.usd ?? null,
     limits: usage?.rateLimits ?? [],
   }
-  lastLine = renderStatus(figures)
-  $.ui.invalidate('ui.render')
+  $.ui.status(renderStatus(figures))
 }
 
 export const registerStatusLine: Register = on => {
-  on('ui.render', { component: 'AbovePrompt' }, ($, e, next) => {
-    if (!lastLine) return next(e)
-    const { Box, Text } = $.ui.resolve(e)
-    return (
-      <Box>
-        <Text color={DRACULA.comment}>{lastLine}</Text>
-      </Box>
-    )
-  })
-
   on('session.start', { isInteractive: true }, async ($, e, next) => {
     lastModel = null
     await paint($).catch(() => {})

@@ -1,6 +1,7 @@
 {
   "name": "clps-claude-code-mod",
-  "version": "0.14.1",
+  "displayName": "Dracula",
+  "version": "0.14.2",
   "description": "Dracula theme for Claude Code: padded prompt/reply boxes, coloured markdown, a session status line and an optional spoken narrator.",
   "types": "./types/index.d.ts",
   "userConfig": {

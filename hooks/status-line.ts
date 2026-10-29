@@ -22,6 +22,7 @@ export type TurnRates = {
 
 let lastRates: TurnRates = { cachePercent: null, tokensPerSecond: null }
 let lastModel: string | null = null
+let lastLine: string | null = null
 
 export function shorten(name: string) {
   return name.length > 10 ? `${name.slice(0, 4)}**${name.slice(-4)}` : name
@@ -92,10 +93,16 @@ async function paint($: EngineInterface) {
     costUsd: usage?.cost?.usd ?? null,
     limits: usage?.rateLimits ?? [],
   }
-  $.ui.status(renderStatus(figures))
+  lastLine = renderStatus(figures)
+  $.ui.invalidate('ui.render')
 }
 
 export const registerStatusLine: Register = on => {
+  on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
+    if (!lastLine) return next(e)
+    return next({ ...e, tail: `  ${lastLine}` })
+  })
+
   on('session.start', { isInteractive: true }, async ($, e, next) => {
     lastModel = null
     await paint($).catch(() => {})

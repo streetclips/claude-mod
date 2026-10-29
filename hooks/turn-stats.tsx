@@ -9,7 +9,6 @@ const KEEP = 200
 const turns = atom({ plugin: 'dracula', key: 'turns' } as const, {})
 
 type Running = {
-  costUsd: number | null
   contextTokens: number | null
   tools: number
   files: Record<string, FileChange>
@@ -30,8 +29,9 @@ export function formatTokens(n: number) {
   return short(n / 1_000_000, 'M')
 }
 
-export function formatCost(usd: number) {
-  return usd < 0.01 ? '<$0.01' : `$${usd.toFixed(2)}`
+export function formatClock(ms: number) {
+  const d = new Date(ms)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 export function countPatch(patch: readonly { lines: readonly string[] }[]) {
@@ -66,7 +66,7 @@ export function fileChange(tool: string, result: unknown): { path: string; added
 
 async function measure($: EngineInterface) {
   const usage = await $.session.usage().catch(() => null)
-  return { costUsd: usage?.cost?.usd ?? null, contextTokens: usage?.context.tokens ?? null }
+  return { contextTokens: usage?.context.tokens ?? null }
 }
 
 const delta = (end: number | null, start: number | null) => (end === null || start === null ? null : end - start)
@@ -83,7 +83,6 @@ export function renderStats(stats: TurnStats, Text: any) {
   return [
     sep,
     <Text color={DRACULA.comment}>↑{formatTokens(stats.inputTokens)} ↓{formatTokens(stats.outputTokens)}</Text>,
-    ...(stats.costUsd === null ? [] : [sep, <Text color={DRACULA.comment}>{formatCost(stats.costUsd)}</Text>]),
     ...(stats.contextDelta === null
       ? []
       : [sep, <Text color={DRACULA.comment}>ctx {stats.contextDelta >= 0 ? '+' : ''}{formatTokens(stats.contextDelta)}</Text>]),
@@ -110,7 +109,7 @@ async function recordTurn($: EngineInterface, e: TurnCompleteInput) {
   const stats: TurnStats = {
     inputTokens: u ? u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens : 0,
     outputTokens: u?.output_tokens ?? 0,
-    costUsd: delta(end.costUsd, start.costUsd),
+    endedAt: Date.now(),
     contextDelta: delta(end.contextTokens, start.contextTokens),
     tools: start.tools,
     files: start.files,
@@ -145,9 +144,10 @@ export const registerTurnStats: Register = on => {
   on('ui.render', { component: 'TurnDuration' }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
     const stats = (await read($, turns))[`${e.props.durationMs}`]
+    const clock = stats?.endedAt ? `⏱ ${formatClock(stats.endedAt)} · ` : '⏱ '
     return (
       <Box marginTop={1}>
-        <Text color={DRACULA.comment}>⏱ {formatDuration(e.props.durationMs)}</Text>
+        <Text color={DRACULA.comment}>{clock}{formatDuration(e.props.durationMs)}</Text>
         {stats ? renderStats(stats, Text) : null}
       </Box>
     )

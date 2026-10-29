@@ -1,7 +1,7 @@
 {
   "name": "dracula",
   "displayName": "Dracula",
-  "version": "0.15.2",
+  "version": "0.16.0",
   "description": "Dracula theme for Claude Code: padded prompt/reply boxes, coloured markdown, a session status line and an optional spoken narrator.",
   "types": "./types/index.d.ts",
   "userConfig": {

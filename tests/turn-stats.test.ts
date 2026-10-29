@@ -1,6 +1,6 @@
 import { test, expect } from 'claude-code/testing'
 
-import { countPatch, fileChange, formatCost, formatTokens } from '../hooks/turn-stats'
+import { countPatch, fileChange, formatClock, formatTokens } from '../hooks/turn-stats'
 
 test('tokens shorten to k and M', async () => {
   expect(formatTokens(950)).toBe('950')
@@ -10,9 +10,9 @@ test('tokens shorten to k and M', async () => {
   expect(formatTokens(1_250_000)).toBe('1.3M')
 })
 
-test('cost keeps cents', async () => {
-  expect(formatCost(0.004)).toBe('<$0.01')
-  expect(formatCost(0.4213)).toBe('$0.42')
+test('clock shows local HH:MM', async () => {
+  expect(formatClock(new Date(2026, 0, 2, 9, 5).getTime())).toBe('09:05')
+  expect(formatClock(new Date(2026, 0, 2, 23, 59).getTime())).toBe('23:59')
 })
 
 test('patch counts added and removed lines', async () => {

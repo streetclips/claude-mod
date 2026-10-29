@@ -2,7 +2,7 @@ export type FileChange = { added: number; removed: number }
 export type TurnStats = {
   inputTokens: number
   outputTokens: number
-  costUsd: number | null
+  endedAt: number
   contextDelta: number | null
   tools: number
   files: Record<string, FileChange>

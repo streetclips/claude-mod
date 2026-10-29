@@ -5,6 +5,7 @@ import { renderMarkdown } from './markdown'
 import { noteTool, noteTurn, registerNarrator } from './narrator'
 import { openFile } from './open-file'
 import { DRACULA } from './palette'
+import { registerStatusLine } from './status-line'
 import { countTool, registerTurnStats, startTurnStats } from './turn-stats'
 
 const openDetails = atom({ plugin: 'clps-claude-code-mod', key: 'openDetails' } as const, [])
@@ -12,6 +13,7 @@ const openDetails = atom({ plugin: 'clps-claude-code-mod', key: 'openDetails' } 
 export const register: Register = (on, options) => {
   registerTurnStats(on, options)
   registerNarrator(on, options)
+  registerStatusLine(on, options)
 
   on('turn.start', async ($, e, next) => {
     await startTurnStats($)

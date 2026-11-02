@@ -24,6 +24,13 @@ export function fileUrl(path: string) {
   return `file://${encodeURI(path.replace(/\\/g, '/').replace(/^(?!\/)/, '/')).replace(/#/g, '%23').replace(/\?/g, '%3F')}`
 }
 
+// `~` and `~/x` mean the user's home, as a shell would read them
+async function expand($: EngineInterface, path: string) {
+  if (!/^~(?=[/\\]|$)/.test(path)) return path
+  const home = (await $.env.get('HOME')) || (await $.env.get('USERPROFILE'))
+  return home ? home.replace(/[\\/]$/, '') + path.slice(1) : path
+}
+
 export async function fileRefs($: EngineInterface, text: string) {
   const cwd = await $.session.cwd()
   const spans = new Set<string>()
@@ -36,7 +43,7 @@ export async function fileRefs($: EngineInterface, text: string) {
   const refs: Record<string, FileRef> = {}
   await Promise.all([...spans].map(async span => {
     const [, path = '', line, column, anchor] = span.match(FILE_REF) ?? []
-    const at = await stat($, cwd, path)
+    const at = await stat($, cwd, await expand($, path))
     // ttt takes one line: a range opens at its first line
     if (at) refs[span] = { ...at, line: (line ?? anchor)?.split('-')[0], column }
   }))

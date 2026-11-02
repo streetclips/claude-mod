@@ -3,7 +3,7 @@ import { test, expect } from 'claude-code/testing'
 import { fileUrl } from '../hooks/file-links'
 import { isText } from '../hooks/open-file'
 
-const FILES: Record<string, 'file' | 'dir'> = { 'hooks/markdown.tsx': 'file', 'README.md': 'file', "it's.md": 'file', 'logo.png': 'file', src: 'dir' }
+const FILES: Record<string, 'file' | 'dir'> = { 'hooks/markdown.tsx': 'file', 'README.md': 'file', "it's.md": 'file', 'logo.png': 'file', src: 'dir', '.config/ttt': 'dir' }
 type Host = { herdr?: boolean; ttt?: boolean; tttOpen?: boolean; reuse?: boolean; mime?: string }
 
 function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = true, mime = 'text/plain; charset=us-ascii' }: Host = {}) {
@@ -11,12 +11,12 @@ function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = t
   const done = (exitCode: number, stdout = '') =>
     ({ value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
   on('env.get', (_: unknown, e: { name: string }) =>
-    ({ value: herdr ? ({ HERDR_ENV: '1', HERDR_BIN_PATH: 'herdr' } as Record<string, string>)[e.name] : undefined }))
+    ({ value: (herdr ? ({ HOME: '/home/me', HERDR_ENV: '1', HERDR_BIN_PATH: 'herdr' } as Record<string, string>) : { HOME: '/home/me' })[e.name] }))
   on('session.cwd', () => ({ value: '/repo' }))
   on('fs.stat', (_: unknown, e: { path: string }) => {
     const file = Object.keys(FILES).find(f => e.path.replace(/\/$/, '').endsWith(`/${f}`))
     return file
-      ? { value: { kind: FILES[file], size: 1, mtimeMs: 0, isLink: false, realPath: `/repo/${file}` } }
+      ? { value: { kind: FILES[file], size: 1, mtimeMs: 0, isLink: false, realPath: e.path.startsWith('/home/me') ? e.path : `/repo/${file}` } }
       : { deny: 'ENOENT' }
   })
   on('process.run', (_: unknown, e: { argv: string[] }) => {
@@ -103,6 +103,12 @@ test('a line range opens at its first line, and a full stop after the path is no
   expect(ran.some(c => c.endsWith(' ttt /repo/hooks/markdown.tsx:3'))).toBe(true)
   expect(ran.some(c => c.endsWith(' ttt /repo/README.md'))).toBe(true)
   expect(ran.some(c => c.endsWith(' ttt /repo/README.md:3'))).toBe(true)
+})
+
+test('a path under ~ opens from the home folder', async ($, on) => {
+  const ran = fakeHost(on)
+  await press($, 'Settings live in `~/.config/ttt`.', ['file-0'])
+  expect(ran).toContain('open /home/me/.config/ttt')
 })
 
 test('files a reply names become buttons that open them; headings keep a file link', async ($, on) => {

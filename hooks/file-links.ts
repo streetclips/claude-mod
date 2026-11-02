@@ -4,9 +4,10 @@ import type { EngineInterface } from 'claude-code'
 
 export type FileRef = { path: string; kind: 'file' | 'dir'; line?: string; column?: string }
 
-// `path`, `path:line`, `path:line:column`, [label](path#Lline)
+// `path`, `path:line`, `path:3-13`, `path:line:column`, [label](path#Lline), [label](path#L3-L13)
 const SPAN = /`([^`\n]+)`|\[[^\]\n]+\]\(([^)\s]+)\)/g
-const FILE_REF = /^([^\s:#`]+?)(?::(\d+)(?::(\d+))?|#L(\d+))?$/
+// a full stop closing the sentence after the path is not part of it
+const FILE_REF = /^([^\s:#`]+?)(?::(\d+(?:-\d+)?)(?::(\d+))?|#L(\d+(?:-L?\d+)?))?(\.)?$/
 
 const found = new Map<string, Pick<FileRef, 'path' | 'kind'> | null>()
 
@@ -36,7 +37,8 @@ export async function fileRefs($: EngineInterface, text: string) {
   await Promise.all([...spans].map(async span => {
     const [, path = '', line, column, anchor] = span.match(FILE_REF) ?? []
     const at = await stat($, cwd, path)
-    if (at) refs[span] = { ...at, line: line ?? anchor, column }
+    // ttt takes one line: a range opens at its first line
+    if (at) refs[span] = { ...at, line: (line ?? anchor)?.split('-')[0], column }
   }))
   return refs
 }

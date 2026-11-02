@@ -4,7 +4,6 @@ import { fileUrl } from '../hooks/file-links'
 import { isText } from '../hooks/open-file'
 
 const FILES: Record<string, 'file' | 'dir'> = { 'hooks/markdown.tsx': 'file', 'README.md': 'file', "it's.md": 'file', 'logo.png': 'file', src: 'dir' }
-
 type Host = { herdr?: boolean; ttt?: boolean; tttOpen?: boolean; reuse?: boolean; mime?: string }
 
 function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = true, mime = 'text/plain; charset=us-ascii' }: Host = {}) {
@@ -96,6 +95,14 @@ test('text means a text charset, never an image, video or audio', () => {
 test('file urls are absolute and encoded', () => {
   expect(fileUrl('/a b/c#d.ts')).toBe('file:///a%20b/c%23d.ts')
   expect(fileUrl('C:\\x\\y.ts')).toBe('file:///C:/x/y.ts')
+})
+
+test('a line range opens at its first line, and a full stop after the path is not part of it', async ($, on) => {
+  const ran = fakeHost(on)
+  await press($, 'See `hooks/markdown.tsx:3-13`, `README.md.` and [readme](README.md#L3-L13).', ['file-0', 'file-1', 'file-2'])
+  expect(ran.some(c => c.endsWith(' ttt /repo/hooks/markdown.tsx:3'))).toBe(true)
+  expect(ran.some(c => c.endsWith(' ttt /repo/README.md'))).toBe(true)
+  expect(ran.some(c => c.endsWith(' ttt /repo/README.md:3'))).toBe(true)
 })
 
 test('files a reply names become buttons that open them; headings keep a file link', async ($, on) => {

@@ -4,6 +4,15 @@ import { fileUrl } from '../hooks/file-links'
 import { isText } from '../hooks/open-file'
 
 const FILES: Record<string, 'file' | 'dir'> = { 'hooks/markdown.tsx': 'file', 'README.md': 'file', "it's.md": 'file', 'logo.png': 'file', src: 'dir', '.config/ttt': 'dir' }
+// what a walk of the workspace finds, node_modules and vendor included
+const TREE: Record<string, 'file' | 'dir'> = {
+  ...FILES,
+  'hooks/open-file.ts': 'file',
+  'src/a/util.ts': 'file',
+  'src/b/util.ts': 'file',
+  'node_modules/pkg/index.js': 'file',
+  'vendor/lib/helper.php': 'file',
+}
 type Host = { herdr?: boolean; ttt?: boolean; tttOpen?: boolean; reuse?: boolean; mime?: string }
 
 function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = true, mime = 'text/plain; charset=us-ascii' }: Host = {}) {
@@ -14,10 +23,22 @@ function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = t
     ({ value: (herdr ? ({ HOME: '/home/me', HERDR_ENV: '1', HERDR_BIN_PATH: 'herdr' } as Record<string, string>) : { HOME: '/home/me' })[e.name] }))
   on('session.cwd', () => ({ value: '/repo' }))
   on('fs.stat', (_: unknown, e: { path: string }) => {
-    const file = Object.keys(FILES).find(f => e.path.replace(/\/$/, '').endsWith(`/${f}`))
+    const file = Object.keys(TREE).find(f => e.path.replace(/\/$/, '').endsWith(`/${f}`))
     return file
-      ? { value: { kind: FILES[file], size: 1, mtimeMs: 0, isLink: false, realPath: e.path.startsWith('/home/me') ? e.path : `/repo/${file}` } }
+      ? { value: { kind: TREE[file], size: 1, mtimeMs: 0, isLink: false, realPath: e.path.startsWith('/home/me') ? e.path : `/repo/${file}` } }
       : { deny: 'ENOENT' }
+  })
+  // the walk asks for `.` under the session's folder, the test's or the plugin's own
+  on('fs.list', (_: unknown, e: { path?: string }) => {
+    const dir = (e.path ?? '').replace(/^.*clps-claude-code-mod\/?/, '').replace(/^(\.\/|\/repo\/?)/, '').replace(/\/$/, '')
+    const names = new Map<string, 'file' | 'dir'>()
+    for (const [f, kind] of Object.entries(TREE)) {
+      if (dir && !f.startsWith(`${dir}/`)) continue
+      const rest = f.slice(dir ? dir.length + 1 : 0)
+      const cut = rest.indexOf('/')
+      names.set(cut < 0 ? rest : rest.slice(0, cut), cut < 0 ? kind : 'dir')
+    }
+    return { value: Array.from(names, ([name, kind]) => ({ name, kind, size: 1, mtimeMs: 0, isLink: false })) }
   })
   on('process.run', (_: unknown, e: { argv: string[] }) => {
     const cmd = e.argv.join(' ')
@@ -109,6 +130,46 @@ test('a path under ~ opens from the home folder', async ($, on) => {
   const ran = fakeHost(on)
   await press($, 'Settings live in `~/.config/ttt`.', ['file-0'])
   expect(ran).toContain('open /home/me/.config/ttt')
+})
+
+test('a file named in running text without its path is found in the workspace and opens', async ($, on) => {
+  const ran = fakeHost(on)
+  await press($, 'Open markdown.tsx:12 and README.md.', ['file-0', 'file-1'])
+  expect(ran.some(c => c.endsWith(' ttt /repo/hooks/markdown.tsx:12'))).toBe(true)
+  expect(ran.some(c => c.endsWith(' ttt /repo/README.md'))).toBe(true)
+})
+
+test('a name inside node_modules or vendor is never inferred, nor one two files could mean', async ($, on) => {
+  fakeHost(on)
+  const ui = await $.ui.mount({
+    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'plain',
+    viewport: { columns: 100, rows: 40 },
+    props: { text: 'See index.js, helper.php and util.ts, but src/a/util.ts is the one.', isFirstOfReply: true },
+  } as any)
+  expect((await ui.findAll({ type: 'Button' })).length).toBe(1)
+  await ui.unmount()
+})
+
+test('a path outside the workspace is not inferred from its name', async ($, on) => {
+  fakeHost(on)
+  const ui = await $.ui.mount({
+    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'outside',
+    viewport: { columns: 100, rows: 40 },
+    props: { text: 'See ../elsewhere/markdown.tsx and /etc/markdown.tsx.', isFirstOfReply: true },
+  } as any)
+  expect((await ui.findAll({ type: 'Button' })).length).toBe(0)
+  await ui.unmount()
+})
+
+test('a name inside a code block is left as it is', async ($, on) => {
+  fakeHost(on)
+  const ui = await $.ui.mount({
+    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'fence',
+    viewport: { columns: 100, rows: 40 },
+    props: { text: '```\nmarkdown.tsx\n```', isFirstOfReply: true },
+  } as any)
+  expect((await ui.findAll({ type: 'Button' })).length).toBe(0)
+  await ui.unmount()
 })
 
 test('files a reply names become buttons that open them; headings keep a file link', async ($, on) => {

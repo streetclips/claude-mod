@@ -1,7 +1,7 @@
 // A small markdown renderer with our own colours, for replies.
 // Tables fall back to the engine's Markdown element.
 
-import { fileUrl, type FileRef } from './file-links'
+import { fileUrl, PLAIN_REF, type FileRef } from './file-links'
 import { DRACULA } from './palette'
 
 export const MD: Record<'code' | 'bold' | 'heading' | 'link' | 'bullet' | 'quote' | 'rule', string> = {
@@ -26,9 +26,22 @@ const INLINE = /(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(\[[^\]\n]+\]\([^)\s]+\))|(\*[^*\s
 function runs(s: string, t: Table): Run[] {
   const out: Run[] = []
   let last = 0
+  const emit = (from: number, to: number) => {
+    let at = from
+    if (to <= from) return
+    for (const m of s.slice(from, to).matchAll(PLAIN_REF)) {
+      const start = from + (m.index ?? 0)
+      const file = t.files?.refs[m[0]]
+      if (!file) continue
+      if (start > at) out.push({ text: s.slice(at, start) })
+      out.push({ text: m[0], style: { color: MD.link }, file, href: fileUrl(file.path) })
+      at = start + m[0].length
+    }
+    if (to > at) out.push({ text: s.slice(at, to) })
+  }
   for (const m of s.matchAll(INLINE)) {
     const at = m.index ?? 0
-    if (at > last) out.push({ text: s.slice(last, at) })
+    emit(last, at)
     const tok = m[0]
     if (m[1]) {
       const code = tok.slice(1, -1)
@@ -43,7 +56,7 @@ function runs(s: string, t: Table): Run[] {
     } else out.push({ text: tok.slice(1, -1), style: { italic: true } })
     last = at + tok.length
   }
-  if (last < s.length) out.push({ text: s.slice(last) })
+  emit(last, s.length)
   return out
 }
 

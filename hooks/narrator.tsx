@@ -24,7 +24,7 @@ Speak the language the user wrote the request in; if that is unclear, the langua
 
 Rules:
 - A speech synthesizer reads it aloud: plain sentences only. No markdown, lists, emojis or code, and no file paths, URLs, hashes or version strings read out character by character: name files and commands the way a person says them ("the register file", "the tests").
-- One sentence for a small answer, up to five for a large change; never more than 90 words.
+- One sentence for a small answer, two for a large change; never more than two sentences or 45 words.
 - No preamble ("Sure", "In summary"), no questions back, nothing Claude did not say or do.
 
 Reply in exactly this form: the first line holds only the ISO 639-1 code of the language you speak (es, en, pt, fr...), and the narration starts on the second line.`

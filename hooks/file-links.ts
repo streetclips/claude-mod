@@ -39,25 +39,52 @@ async function expand($: EngineInterface, path: string) {
   return home ? home.replace(/[\\/]$/, '') + path.slice(1) : path
 }
 
-type Index = { at: number; paths: string[]; names: Map<string, string[]> }
+type Index = { at: number; names: Map<string, string[]> }
 const indexes = new Map<string, Index>()
+
+// a file the tools wrote changes what a name can mean: the next reply indexes again
+export function forgetFiles() {
+  indexes.clear()
+}
+
+const skipped = (path: string) => path.split('/').some(part => SKIP.has(part))
+
+// git lists the workspace in one call, ignored files aside; outside a repository it answers nothing usable
+async function gitFiles($: EngineInterface): Promise<string[] | null> {
+  const run = await $.process.run(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], { timeoutMs: 10_000 }).catch(() => undefined)
+  if (!run || run.exitCode !== 0 || run.isStdoutTruncated) return null
+  return run.stdout.split('\0').filter(path => path !== '' && !skipped(path)).slice(0, MAX_FILES)
+}
 
 // every file in the workspace by its path and by its name, kept for a minute
 async function index($: EngineInterface, cwd: string) {
   const held = indexes.get(cwd)
   if (held && Date.now() - held.at < INDEX_TTL) return held
-  const paths: string[] = []
+  const listed = await gitFiles($)
+  if (listed) {
+    const names = new Map<string, string[]>()
+    for (const path of listed) {
+      const name = path.slice(path.lastIndexOf('/') + 1)
+      const held = names.get(name)
+      if (held) held.push(path)
+      else names.set(name, [path])
+    }
+    const made = { at: Date.now(), names }
+    indexes.set(cwd, made)
+    return made
+  }
   const names = new Map<string, string[]>()
+  let files = 0
   const walk = async (dir: string, depth: number): Promise<void> => {
-    if (depth > MAX_DEPTH || paths.length >= MAX_FILES) return
+    if (depth > MAX_DEPTH || files >= MAX_FILES) return
     const entries = await $.fs.list(dir || '.').catch(() => [])
     const below: string[] = []
     for (const entry of entries) {
       const path = dir ? `${dir}/${entry.name}` : entry.name
       if (entry.kind === 'dir') {
         if (!SKIP.has(entry.name)) below.push(path)
-      } else if (entry.kind === 'file' && paths.length < MAX_FILES) {
-        paths.push(path)
+      } else if (entry.kind === 'file' && files < MAX_FILES) {
+        files++
         const held = names.get(entry.name)
         if (held) held.push(path)
         else names.set(entry.name, [path])
@@ -66,7 +93,7 @@ async function index($: EngineInterface, cwd: string) {
     await Promise.all(below.map(path => walk(path, depth + 1)))
   }
   await walk('', 0)
-  const made = { at: Date.now(), paths, names }
+  const made = { at: Date.now(), names }
   indexes.set(cwd, made)
   return made
 }
@@ -75,8 +102,9 @@ const depth = (path: string) => path.split('/').length
 
 // a name given without enough of its path: the one file in the workspace it can only mean
 async function infer($: EngineInterface, cwd: string, path: string) {
-  const { paths, names } = await index($, cwd)
-  const matches = path.includes('/') ? paths.filter(p => p.endsWith(`/${path}`)) : names.get(path) ?? []
+  const { names } = await index($, cwd)
+  const candidates = names.get(path.slice(path.lastIndexOf('/') + 1)) ?? []
+  const matches = path.includes('/') ? candidates.filter(p => p.endsWith(`/${path}`)) : candidates
   if (!matches.length) return null
   const ranked = [...matches].sort((a, b) => depth(a) - depth(b) || a.length - b.length)
   const [first, second] = ranked
@@ -85,12 +113,12 @@ async function infer($: EngineInterface, cwd: string, path: string) {
   return stat($, cwd, first)
 }
 
-async function locate($: EngineInterface, cwd: string, path: string) {
-  const direct = await stat($, cwd, await expand($, path))
-  if (direct) return direct
-  // only a name inside the workspace is inferred, never an absolute one
-  if (/^[~/\\]|^[A-Za-z]:|^\.\.(\/|$)/.test(path)) return null
-  return infer($, cwd, path)
+// a name inside the workspace, never an absolute one, is the only thing inferred
+const inferable = (path: string) => !/^[~/\\]|^[A-Za-z]:|^\.\.(\/|$)/.test(path)
+
+async function direct($: EngineInterface, cwd: string, path: string) {
+  const at = await stat($, cwd, await expand($, path))
+  return at ? { at } : inferable(path) ? { infer: path } : {}
 }
 
 // the running text: no code spans, links or fenced blocks, where a name is already read
@@ -109,9 +137,14 @@ export async function fileRefs($: EngineInterface, text: string) {
   }
   for (const m of prose(text).matchAll(PLAIN_REF)) spans.add(m[0])
   const refs: Record<string, FileRef> = {}
-  await Promise.all([...spans].map(async span => {
+  // the paths are looked up first: only a name that is not there walks the workspace
+  const looked = await Promise.all([...spans].map(async span => {
     const [, path = '', line, column, anchor] = span.match(FILE_REF) ?? []
-    const at = await locate($, cwd, path)
+    const found = path ? await direct($, cwd, path) : {}
+    return { span, line, column, anchor, found }
+  }))
+  await Promise.all(looked.map(async ({ span, line, column, anchor, found }) => {
+    const at = 'at' in found ? found.at : 'infer' in found ? await infer($, cwd, found.infer) : null
     // ttt takes one line: a range opens at its first line
     if (at) refs[span] = { ...at, line: (line ?? anchor)?.split('-')[0], column }
   }))

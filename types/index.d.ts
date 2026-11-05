@@ -1,4 +1,5 @@
 export type FileChange = { added: number; removed: number }
+export type FileRef = { path: string; kind: 'file' | 'dir'; line?: string; column?: string }
 export type TurnStats = {
   inputTokens: number
   outputTokens: number
@@ -14,6 +15,7 @@ declare module 'claude-code' {
       narratorEnabled: boolean
       turns: Record<string, TurnStats>
       openDetails: StateFamily<number[]>
+      fileRefs: StateFamily<{ text: string; refs: Record<string, FileRef> }>
     }
   }
 }

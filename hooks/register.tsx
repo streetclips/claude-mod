@@ -1,6 +1,6 @@
-import { atom, memberOf, read, update, type Register } from 'claude-code'
+import { atom, memberOf, read, update, type EngineInterface, type Register } from 'claude-code'
 
-import { fileRefs, type FileRef } from './file-links'
+import { fileRefs, forgetFiles, type FileRef } from './file-links'
 import { renderMarkdown } from './markdown'
 import { noteTool, noteTurn, registerNarrator } from './narrator'
 import { openFile } from './open-file'
@@ -8,6 +8,22 @@ import { DRACULA } from './palette'
 import { countTool, registerTurnStats, startTurnStats } from './turn-stats'
 
 const openDetails = atom({ plugin: 'dracula', key: 'openDetails' } as const, [])
+const fileRefsOf = atom({ plugin: 'dracula', key: 'fileRefs' } as const, { text: '', refs: {} })
+
+const WRITES = new Set(['Write', 'Edit', 'NotebookEdit'])
+
+// the reply is drawn at once and its paths looked up after: the box never waits for the file system
+const looking = new Set<string>()
+
+function lookUp($: EngineInterface, e: { requestId: string }, text: string) {
+  if (looking.has(e.requestId)) return
+  looking.add(e.requestId)
+  void fileRefs($, text)
+    .catch(() => ({}))
+    .then(refs => update($, memberOf(fileRefsOf, e), () => ({ text, refs })))
+    .catch(() => undefined)
+    .finally(() => looking.delete(e.requestId))
+}
 
 export const register: Register = (on, options) => {
   registerTurnStats(on, options)
@@ -21,6 +37,7 @@ export const register: Register = (on, options) => {
 
   on('tool.call', async ($, e, next) => {
     const result = await next(e)
+    if (WRITES.has(e.tool)) forgetFiles()
     countTool(e, result)
     await noteTool($, e, result)
     return result
@@ -38,9 +55,11 @@ export const register: Register = (on, options) => {
     )
   })
 
-  // Claude's replies: padded box in the reply colour, markdown in Dracula colours
+  // Claude's replies: padded box in the reply colour, markdown in Dracula colours.
+  // The box is drawn before the paths are looked up, and drawn again once they are.
   on('ui.render', { component: 'AssistantMessage' }, async ($, e) => {
-    const refs = await fileRefs($, e.props.text).catch(() => ({}))
+    const { text, refs } = await read($, memberOf(fileRefsOf, e))
+    if (text !== e.props.text) lookUp($, e, e.props.text)
     const openRef = (ref: FileRef) => openFile($, ref).catch(err => $.ui.toast(`Could not open ${ref.path}: ${err.message}`))
     const t = { ...$.ui.resolve(e), files: { refs, open: openRef, count: 0 } }
     const { Box } = t

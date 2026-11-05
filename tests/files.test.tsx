@@ -13,15 +13,15 @@ const TREE: Record<string, 'file' | 'dir'> = {
   'node_modules/pkg/index.js': 'file',
   'vendor/lib/helper.php': 'file',
 }
-type Host = { herdr?: boolean; ttt?: boolean; tttOpen?: boolean; reuse?: boolean; mime?: string }
+type Host = { herdr?: boolean; ttt?: boolean; tttOpen?: boolean; reuse?: boolean; mime?: string; git?: boolean; cwd?: string; gate?: Promise<void> }
 
-function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = true, mime = 'text/plain; charset=us-ascii' }: Host = {}) {
+function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = true, mime = 'text/plain; charset=us-ascii', git = false, cwd = '/repo', gate }: Host = {}) {
   const ran: string[] = []
   const done = (exitCode: number, stdout = '') =>
     ({ value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
   on('env.get', (_: unknown, e: { name: string }) =>
     ({ value: (herdr ? ({ HOME: '/home/me', HERDR_ENV: '1', HERDR_BIN_PATH: 'herdr' } as Record<string, string>) : { HOME: '/home/me' })[e.name] }))
-  on('session.cwd', () => ({ value: '/repo' }))
+  on('session.cwd', () => ({ value: cwd }))
   on('fs.stat', (_: unknown, e: { path: string }) => {
     const file = Object.keys(TREE).find(f => e.path.replace(/\/$/, '').endsWith(`/${f}`))
     return file
@@ -44,6 +44,12 @@ function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = t
     const cmd = e.argv.join(' ')
     ran.push(cmd)
     if (cmd.startsWith('file ')) return done(0, mime)
+    // git lists the workspace in one call: the files, node_modules and vendor among them
+    if (cmd.startsWith('git ls-files')) {
+      if (!git) return done(128)
+      const listed = done(0, Object.keys(TREE).join('\0'))
+      return gate ? gate.then(() => listed) : listed
+    }
     if (cmd === 'sh -c command -v ttt') return done(ttt ? 0 : 1)
     if (cmd === 'ttt --help') return done(0, reuse ? '--new-window  Start a separate editor' : '--welcome')
     if (cmd === 'herdr pane list') {
@@ -139,7 +145,39 @@ test('a file named in running text without its path is found in the workspace an
   expect(ran.some(c => c.endsWith(' ttt /repo/README.md'))).toBe(true)
 })
 
-test('a name inside node_modules or vendor is never inferred, nor one two files could mean', async ($, on) => {
+test('a name without its path is found with one git listing, and a direct path never walks', async ($, on) => {
+  const ran = fakeHost(on, { git: true, cwd: '/repo/git' })
+  await press($, 'See `hooks/markdown.tsx:4` and markdown.tsx.', ['file-0', 'file-1'])
+  expect(ran.filter(c => c.startsWith('git ls-files'))).toHaveLength(1)
+  expect(ran.some(c => c.endsWith(' ttt /repo/hooks/markdown.tsx'))).toBe(true)
+})
+
+test('a reply naming only paths that resolve never lists the workspace', async ($, on) => {
+  const ran = fakeHost(on, { git: true, cwd: '/repo/direct' })
+  await press($, 'See `hooks/markdown.tsx:4` and `README.md`.', ['file-0', 'file-1'])
+  expect(ran.some(c => c.startsWith('git ls-files'))).toBe(false)
+})
+
+test('the reply is drawn before the paths are looked up, and drawn again with them', async ($, on) => {
+  let release: () => void = () => {}
+  const gate = new Promise<void>(resolve => (release = resolve))
+  const ran = fakeHost(on, { git: true, cwd: '/repo/late', gate })
+  const ui = await $.ui.mount({
+    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'late',
+    viewport: { columns: 100, rows: 40 },
+    props: { text: 'See `hooks/markdown.tsx:4` and markdown.tsx.', isFirstOfReply: true },
+  } as any)
+  // the look-up is still held: the box is drawn, its files are not links yet
+  expect((await ui.findAll({ type: 'Button' })).length).toBe(0)
+  expect(await ui.find({ text: /See/ })).toBeDefined()
+  release()
+  await ui.redraw()
+  expect((await ui.findAll({ type: 'Button' })).length).toBe(2)
+  expect(ran.some(c => c.startsWith('git ls-files'))).toBe(true)
+  await ui.unmount()
+})
+
+test('a name inside node_modules or vendor is never inferred, nor two files it could mean', async ($, on) => {
   fakeHost(on)
   const ui = await $.ui.mount({
     plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'plain',

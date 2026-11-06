@@ -4,6 +4,8 @@ A themed interface for Claude Code: your prompts and Claude's replies in padded 
 
 By [Alejandro Cantero](https://alejandrocantero.dev).
 
+> This is a personal project. Pull requests are not accepted: PR creation is restricted to collaborators. Issues are closed too.
+
 ```
 ╭──────────────────────────────────────────────────────────╮
 │  refactor the auth middleware and run the tests          │   ← your prompt

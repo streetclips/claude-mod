@@ -6,7 +6,7 @@ import { DRACULA } from './palette'
 
 const KEEP = 200
 
-const turns = atom({ plugin: 'dracula-mod', key: 'turns' } as const, {})
+const turns = atom({ plugin: 'alejandrocantero-claude-mod', key: 'turns' } as const, {})
 
 type Running = {
   contextTokens: number | null

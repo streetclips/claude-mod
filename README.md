@@ -14,7 +14,7 @@ Code blocks and tables keep Claude Code's own rendering. While a reply streams, 
 
 ```
 /plugin marketplace add alejandrocantero/claude-mod
-/plugin install dracula-mod@claude-mod
+/plugin install alejandrocantero-claude-mod@claude-mod
 ```
 
 ## Opening files in ttt

@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "dracula-mod",
+      "name": "alejandrocantero-claude-mod",
       "source": "./",
       "description": "Dracula theme for Claude Code: message boxes and markdown colours."
     }

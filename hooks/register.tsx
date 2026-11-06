@@ -7,8 +7,8 @@ import { openFile } from './open-file'
 import { DRACULA } from './palette'
 import { countTool, registerTurnStats, startTurnStats } from './turn-stats'
 
-const openDetails = atom({ plugin: 'dracula-mod', key: 'openDetails' } as const, [])
-const fileRefsOf = atom({ plugin: 'dracula-mod', key: 'fileRefs' } as const, { text: '', refs: {} })
+const openDetails = atom({ plugin: 'alejandrocantero-claude-mod', key: 'openDetails' } as const, [])
+const fileRefsOf = atom({ plugin: 'alejandrocantero-claude-mod', key: 'fileRefs' } as const, { text: '', refs: {} })
 
 const WRITES = new Set(['Write', 'Edit', 'NotebookEdit'])
 

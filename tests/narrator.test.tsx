@@ -97,7 +97,7 @@ function world (on: On, { system = 'Darwin', env = {}, reply = 'es\nHe añadido 
 }
 
 const footer = ($: Engine, modes: string[] = []) =>
-  $.ui.mount({ plugin: 'dracula-mod', surface: 'terminal', component: 'SessionMode', props: { modes } })
+  $.ui.mount({ plugin: 'alejandrocantero-claude-mod', surface: 'terminal', component: 'SessionMode', props: { modes } })
 const startSession = ($: Engine) => $.session.start({ cwd: '/project', surface: 'terminal', isInteractive: true })
 const narrator = ($: Engine, args = '') => $.command.run({ command: 'narrator', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
 const turn = async ($: Engine, { prompt = 'add a narrator', answer = 'Added the **narrator** in `plugins/narrator`.', agentId, reason = 'answer' as const }: { prompt?: string; answer?: string; agentId?: string; reason?: 'answer' | 'aborted' } = {}) => {

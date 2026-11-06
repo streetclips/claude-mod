@@ -11,7 +11,7 @@ export type TurnStats = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'dracula-mod': {
+    'alejandrocantero-claude-mod': {
       narratorEnabled: boolean
       turns: Record<string, TurnStats>
       openDetails: StateFamily<number[]>

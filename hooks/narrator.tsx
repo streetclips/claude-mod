@@ -29,7 +29,7 @@ Rules:
 
 Reply in exactly this form: the first line holds only the ISO 639-1 code of the language you speak (es, en, pt, fr...), and the narration starts on the second line.`
 
-const enabled = atom({ plugin: 'dracula-mod', key: 'narratorEnabled' } as const, false)
+const enabled = atom({ plugin: 'alejandrocantero-claude-mod', key: 'narratorEnabled' } as const, false)
 
 let settings = { voice: '', model: 'haiku' }
 let request = ''

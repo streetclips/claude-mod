@@ -2,7 +2,7 @@
 
 A [Dracula](https://draculatheme.com)-coloured interface for Claude Code: your prompts and Claude's replies in padded boxes, markdown in theme colours, clickable file paths, a turn footer with tokens and diff stats, and an optional narrator that reads each turn out loud.
 
-By [Alejandro Cantero](https://alejandrocantero.dev). Forked from [yugal1107/ui-themes](https://github.com/yugal1107/ui-themes); the narrator is adapted from [midudev/better-claude](https://github.com/midudev/better-claude/tree/main/plugins/narrator).
+By [Alejandro Cantero](https://alejandrocantero.dev).
 
 ```
 ╭──────────────────────────────────────────────────────────╮

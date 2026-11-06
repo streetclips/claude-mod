@@ -1,7 +1,7 @@
 {
   "name": "alejandrocantero-claude-mod",
   "displayName": "alejandrocantero.dev/claude-mod",
-  "version": "0.20.4",
+  "version": "0.20.5",
   "description": "Dracula theme for Claude Code by Alejandro Cantero (alejandrocantero.dev): padded prompt/reply boxes, coloured markdown, a session status line and an optional spoken narrator.",
   "types": "./types/index.d.ts",
   "userConfig": {

@@ -1,12 +1,12 @@
 {
-  "name": "clps-claude-code-mod",
+  "name": "claude-mod",
   "description": "Dracula theme for Claude Code",
   "owner": {
-    "name": "streetclips"
+    "name": "alejandrocantero"
   },
   "plugins": [
     {
-      "name": "clps-claude-code-mod",
+      "name": "dracula-mod",
       "source": "./",
       "description": "Dracula theme for Claude Code: message boxes and markdown colours."
     }

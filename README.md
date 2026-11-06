@@ -1,6 +1,6 @@
-# clps-claude-code-mod
+# claude-mod
 
-Dracula theme for the Claude Code terminal UI, forked from [yugal1107/ui-themes](https://github.com/yugal1107/ui-themes):
+Dracula theme for the Claude Code terminal UI by Alejandro Cantero ([alejandrocantero.dev](https://alejandrocantero.dev)), forked from [yugal1107/ui-themes](https://github.com/yugal1107/ui-themes):
 
 - Your prompts and Claude's replies drawn in padded, coloured boxes
 - Reply markdown in Dracula colours (headings, `inline code`, **bold**, links, bullets, quotes)
@@ -13,8 +13,8 @@ Code blocks and tables keep Claude Code's own rendering. While a reply streams, 
 ## Install
 
 ```
-/plugin marketplace add streetclips/clps-claude-code-mod
-/plugin install clps-claude-code-mod@clps-claude-code-mod
+/plugin marketplace add alejandrocantero/claude-mod
+/plugin install dracula-mod@claude-mod
 ```
 
 ## Opening files in ttt

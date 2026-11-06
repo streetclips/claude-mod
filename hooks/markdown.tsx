@@ -104,7 +104,7 @@ const DETAILS_TAG = /<details[^>]*>|<\/details\s*>/gi
 const indentOf = (l: string) => (l.match(/^\s*/)?.[0] ?? '').length
 
 // A tag sharing its line with text ("Intro <details>", "</details> after") gets its own line,
-// so the block parser sees it. Fenced code is left alone.
+// so the block parser sees it. Fenced code and `inline code` are left alone.
 function splitTags(src: string): string[] {
   const out: string[] = []
   let fence: string | null = null
@@ -118,9 +118,12 @@ function splitTags(src: string): string[] {
       continue
     }
     if (fence) { out.push(line); continue }
+    const spans = [...line.matchAll(/`[^`\n]+`/g)].map(m => [m.index ?? 0, (m.index ?? 0) + m[0].length])
+    const inCode = (at: number) => spans.some(([from, to]) => at >= from && at < to)
     let at = 0
     for (const m of line.matchAll(DETAILS_TAG)) {
       const start = m.index ?? 0
+      if (inCode(start)) continue
       if (start > at) out.push(line.slice(at, start))
       out.push(m[0])
       at = start + m[0].length
@@ -293,7 +296,7 @@ export function renderMarkdown(
     const para: string[] = []
     while (i < lines.length) {
       const l = lines[i] ?? ''
-      if (!l.trim() || /^\s*(```|~~~|<details>|\||#{1,6}\s|>|([-*+]|\d+[.)])\s)/.test(l)) break
+      if (!l.trim() || /^\s*(```|~~~|<details[^>]*>|\||#{1,6}\s|>|([-*+]|\d+[.)])\s)/i.test(l)) break
       para.push(l.trim())
       i++
     }

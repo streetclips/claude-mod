@@ -79,6 +79,22 @@ test('a details inside another numbers after it and opens on its own', async ($)
   await ui.unmount()
 })
 
+test('a details tag inside an inline code span stays text', async ($) => {
+  const ui = await $.ui.mount({
+    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'inline-code-details',
+    viewport: { columns: 100, rows: 40 },
+    props: {
+      text: 'Si los `<details>` siguen saliendo sin caja, reinicia.\n\n<details>\n<summary>More</summary>\nHidden body\n</details>',
+      isFirstOfReply: true,
+    },
+  } as any)
+  expect(await ui.find({ type: 'Text', text: /<details>/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /Hidden body/ })).toBeFalsy()
+  await ui.press({ key: 'details-0' })
+  expect(await ui.find({ type: 'Text', text: /Hidden body/ })).toBeTruthy()
+  await ui.unmount()
+})
+
 test('details tags inside a fenced code block are left as code', async ($) => {
   const ui = await $.ui.mount({
     plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'fenced-details',

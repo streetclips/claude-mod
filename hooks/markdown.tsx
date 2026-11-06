@@ -98,8 +98,38 @@ function flow(s: string, t: Table, keyBase: string): El {
 }
 
 const LIST_ITEM = /^\s*([-*+]|\d+[.)])\s+/
-const BLOCK_START = /^\s*(`{3,}|~{3,}|\||<details>|#{1,6}\s|>)/
+const BLOCK_START = /^\s*(`{3,}|~{3,}|\||<details[^>]*>|#{1,6}\s|>)/i
+const DETAILS_OPEN = /^\s*<details[^>]*>/i
+const DETAILS_TAG = /<details[^>]*>|<\/details\s*>/gi
 const indentOf = (l: string) => (l.match(/^\s*/)?.[0] ?? '').length
+
+// A tag sharing its line with text ("Intro <details>", "</details> after") gets its own line,
+// so the block parser sees it. Fenced code is left alone.
+function splitTags(src: string): string[] {
+  const out: string[] = []
+  let fence: string | null = null
+  for (const line of src.split('\n')) {
+    const f = line.match(/^\s*(`{3,}|~{3,})(.*)$/)
+    if (f) {
+      const mark = f[1] ?? ''
+      if (!fence) fence = mark
+      else if (mark[0] === fence[0] && mark.length >= fence.length && !(f[2] ?? '').trim()) fence = null
+      out.push(line)
+      continue
+    }
+    if (fence) { out.push(line); continue }
+    let at = 0
+    for (const m of line.matchAll(DETAILS_TAG)) {
+      const start = m.index ?? 0
+      if (start > at) out.push(line.slice(at, start))
+      out.push(m[0])
+      at = start + m[0].length
+    }
+    if (at === 0) out.push(line)
+    else if (at < line.length) out.push(line.slice(at))
+  }
+  return out
+}
 
 // <b>/<strong>, <i>/<em> and <code> become their markdown; any other tag is dropped
 export const htmlToMarkdown = (s: string) => s
@@ -108,10 +138,14 @@ export const htmlToMarkdown = (s: string) => s
   .replace(/<\/?code>/gi, '`')
   .replace(/<\/?[a-z][^>]*>/gi, '')
 
-export function renderMarkdown(src: string, t: Table, details: Details = { open: [], toggle: () => {} }): El {
+export function renderMarkdown(
+  src: string,
+  t: Table,
+  details: Details = { open: [], toggle: () => {} },
+  count: { n: number } = { n: 0 },
+): El {
   const { Box, Text, Code, Markdown, Button } = t
-  const lines = src.replace(/\s+$/, '').split('\n')
-  let detailsCount = 0
+  const lines = splitTags(src.replace(/\s+$/, ''))
   const blocks: El[] = []
   let i = 0
   const push = (el: El) => blocks.push(
@@ -137,22 +171,22 @@ export function renderMarkdown(src: string, t: Table, details: Details = { open:
     }
 
     // <details><summary>…</summary> … </details>, collapsed until pressed
-    if (/^\s*<details>/.test(line)) {
+    if (DETAILS_OPEN.test(line)) {
       const body: string[] = []
       let summary = ''
-      let rest = line.replace(/^\s*<details>/, '')
+      let rest = line.replace(/^\s*<details[^>]*>/i, '')
       let depth = 1
       i++
       while (true) {
-        const s = rest.match(/^\s*<summary>(.*?)<\/summary>(.*)$/)
-        if (!summary && s) { summary = s[1] ?? ''; rest = s[2] ?? '' }
-        depth += (rest.match(/<details>/g) ?? []).length - (rest.match(/<\/details>/g) ?? []).length
-        if (depth <= 0) { body.push(rest.replace(/<\/details>\s*$/, '')); break }
+        const s = rest.match(/^\s*<summary[^>]*>([\s\S]*?)<\/summary\s*>(.*)$/i)
+        if (!summary && s) { summary = (s[1] ?? '').trim(); rest = s[2] ?? '' }
+        depth += (rest.match(/<details[^>]*>/gi) ?? []).length - (rest.match(/<\/details\s*>/gi) ?? []).length
+        if (depth <= 0) { body.push(rest.replace(/<\/details\s*>\s*$/i, '')); break }
         if (rest.trim()) body.push(rest)
         if (i >= lines.length) break
         rest = lines[i++] ?? ''
       }
-      const index = detailsCount++
+      const index = count.n++
       const isOpen = details.open.includes(index)
       push(
         <Box flexDirection="column">
@@ -160,7 +194,7 @@ export function renderMarkdown(src: string, t: Table, details: Details = { open:
             <Text color={MD.bullet}>{isOpen ? '▾ ' : '▸ '}</Text>
             <Text bold>{inline(htmlToMarkdown(summary) || 'Details', t, `s${index}`)}</Text>
           </Button>
-          {isOpen ? <Box paddingLeft={2} marginTop={1}>{renderMarkdown(body.join('\n'), t)}</Box> : null}
+          {isOpen ? <Box paddingLeft={2} marginTop={1}>{renderMarkdown(body.join('\n'), t, details, count)}</Box> : null}
         </Box>,
       )
       continue
@@ -245,7 +279,7 @@ export function renderMarkdown(src: string, t: Table, details: Details = { open:
               <Box width={marker.length + 1} flexShrink={0}><Text color={MD.bullet}>{marker}</Text></Box>
               <Box flexGrow={1} flexShrink={1} flexDirection="column">
                 {flow(text, t, `li${i}`)}
-                {child.length ? <Box marginTop={1}>{renderMarkdown(child.map(x => x.slice(cut)).join('\n'), t)}</Box> : null}
+                {child.length ? <Box marginTop={1}>{renderMarkdown(child.map(x => x.slice(cut)).join('\n'), t, details, count)}</Box> : null}
               </Box>
             </Box>,
           )

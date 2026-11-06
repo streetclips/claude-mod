@@ -22,7 +22,7 @@ test('longer fence keeps inner fences and closes before the next block', async (
 
 test('details start collapsed and a press opens them', async ($) => {
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'm3',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'm3',
     viewport: { columns: 100, rows: 40 },
     props: { text: 'Intro\n<details>\n<summary>More</summary>\nHidden **body**\n</details>', isFirstOfReply: true },
   } as any)
@@ -48,7 +48,7 @@ test('details with attributes, capitals, inline tags or inside a list still coll
   ]
   for (const [name, text] of cases) {
     const ui = await $.ui.mount({
-      plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: `details-${name}`,
+      plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: `details-${name}`,
       viewport: { columns: 100, rows: 40 },
       props: { text, isFirstOfReply: true },
     } as any)
@@ -62,7 +62,7 @@ test('details with attributes, capitals, inline tags or inside a list still coll
 
 test('a details inside another numbers after it and opens on its own', async ($) => {
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'nested-details',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'nested-details',
     viewport: { columns: 100, rows: 40 },
     props: {
       text: '<details>\n<summary>Outer</summary>\n\n<details>\n<summary>Inner</summary>\nHidden body\n</details>\n\n</details>',
@@ -86,7 +86,7 @@ test('a details tag mid-sentence stays text, alone or between backticks', async 
     'así que `` `<details>` `` dentro de una frase se convertía en un bloque.',
   ]) {
     const ui = await $.ui.mount({
-      plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: `mid-${text.length}`,
+      plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: `mid-${text.length}`,
       viewport: { columns: 100, rows: 40 },
       props: { text, isFirstOfReply: true },
     } as any)
@@ -98,7 +98,7 @@ test('a details tag mid-sentence stays text, alone or between backticks', async 
 
 test('a details tag inside an inline code span stays text', async ($) => {
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'inline-code-details',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'inline-code-details',
     viewport: { columns: 100, rows: 40 },
     props: {
       text: 'Si los `<details>` siguen saliendo sin caja, reinicia.\n\n<details>\n<summary>More</summary>\nHidden body\n</details>',
@@ -114,7 +114,7 @@ test('a details tag inside an inline code span stays text', async ($) => {
 
 test('details tags inside a fenced code block are left as code', async ($) => {
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'fenced-details',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'fenced-details',
     viewport: { columns: 100, rows: 40 },
     props: { text: '```html\n<details>\n<summary>More</summary>\n</details>\n```', isFirstOfReply: true },
   } as any)
@@ -125,7 +125,7 @@ test('details tags inside a fenced code block are left as code', async ($) => {
 
 test('code and tables indented under a list item nest under it, and summary html becomes markdown', async ($) => {
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'm4',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'm4',
     viewport: { columns: 100, rows: 40 },
     props: {
       text: '<details>\n<summary><b>Palette</b></summary>\n\n1. Code:\n   ```bash\n   claude --plugin-dir .\n   ```\n2. Table:\n   | A | B |\n   |---|---|\n   | x | y |\n</details>',

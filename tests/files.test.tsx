@@ -67,7 +67,7 @@ function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = t
 
 async function press($: any, text: string, keys: string[]) {
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: text,
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: text,
     viewport: { columns: 100, rows: 40 }, props: { text, isFirstOfReply: true },
   })
   for (const key of keys) await ui.press({ key })
@@ -163,7 +163,7 @@ test('the reply is drawn before the paths are looked up, and drawn again with th
   const gate = new Promise<void>(resolve => (release = resolve))
   const ran = fakeHost(on, { git: true, cwd: '/repo/late', gate })
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'late',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'late',
     viewport: { columns: 100, rows: 40 },
     props: { text: 'See `hooks/markdown.tsx:4` and markdown.tsx.', isFirstOfReply: true },
   } as any)
@@ -180,7 +180,7 @@ test('the reply is drawn before the paths are looked up, and drawn again with th
 test('a name inside node_modules or vendor is never inferred, nor two files it could mean', async ($, on) => {
   fakeHost(on)
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'plain',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'plain',
     viewport: { columns: 100, rows: 40 },
     props: { text: 'See index.js, helper.php and util.ts, but src/a/util.ts is the one.', isFirstOfReply: true },
   } as any)
@@ -191,7 +191,7 @@ test('a name inside node_modules or vendor is never inferred, nor two files it c
 test('a path outside the workspace is not inferred from its name', async ($, on) => {
   fakeHost(on)
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'outside',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'outside',
     viewport: { columns: 100, rows: 40 },
     props: { text: 'See ../elsewhere/markdown.tsx and /etc/markdown.tsx.', isFirstOfReply: true },
   } as any)
@@ -202,7 +202,7 @@ test('a path outside the workspace is not inferred from its name', async ($, on)
 test('a name inside a code block is left as it is', async ($, on) => {
   fakeHost(on)
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'fence',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'fence',
     viewport: { columns: 100, rows: 40 },
     props: { text: '```\nmarkdown.tsx\n```', isFirstOfReply: true },
   } as any)
@@ -213,7 +213,7 @@ test('a name inside a code block is left as it is', async ($, on) => {
 test('files a reply names become buttons that open them; headings keep a file link', async ($, on) => {
   const ran = fakeHost(on)
   const ui = await $.ui.mount({
-    plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'f1',
+    plugin: 'clps-claude-code-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'f1',
     viewport: { columns: 100, rows: 40 },
     props: {
       text: '# In `README.md`\n\nSee `hooks/markdown.tsx:36`, [readme](README.md#L3), `e.props.text` and `missing/file.ts:9`.',

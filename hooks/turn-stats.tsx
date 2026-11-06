@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, ToolCallInput, ToolCallResult, TurnCompleteInput } from 'claude-code'
 
 import type { FileChange, TurnStats } from '../types'
-import { DRACULA } from './palette'
+import { PALETTE } from './palette'
 
 const KEEP = 200
 
@@ -72,7 +72,7 @@ async function measure($: EngineInterface) {
 const delta = (end: number | null, start: number | null) => (end === null || start === null ? null : end - start)
 
 export function renderStats(stats: TurnStats, Text: any) {
-  const sep = <Text color={DRACULA.comment}> · </Text>
+  const sep = <Text color={PALETTE.comment}> · </Text>
   const files = Object.keys(stats.files).length
   let added = 0
   let removed = 0
@@ -82,20 +82,20 @@ export function renderStats(stats: TurnStats, Text: any) {
   }
   return [
     sep,
-    <Text color={DRACULA.comment}>↑{formatTokens(stats.inputTokens)} ↓{formatTokens(stats.outputTokens)}</Text>,
+    <Text color={PALETTE.comment}>↑{formatTokens(stats.inputTokens)} ↓{formatTokens(stats.outputTokens)}</Text>,
     ...(stats.contextDelta === null
       ? []
-      : [sep, <Text color={DRACULA.comment}>ctx {stats.contextDelta >= 0 ? '+' : ''}{formatTokens(stats.contextDelta)}</Text>]),
+      : [sep, <Text color={PALETTE.comment}>ctx {stats.contextDelta >= 0 ? '+' : ''}{formatTokens(stats.contextDelta)}</Text>]),
     sep,
-    <Text color={DRACULA.comment}>{stats.tools} {stats.tools === 1 ? 'tool' : 'tools'}</Text>,
+    <Text color={PALETTE.comment}>{stats.tools} {stats.tools === 1 ? 'tool' : 'tools'}</Text>,
     ...(files === 0
       ? []
       : [
           sep,
-          <Text color={DRACULA.comment}>{files} {files === 1 ? 'file' : 'files'} </Text>,
-          <Text color={DRACULA.green}>+{added}</Text>,
-          <Text color={DRACULA.comment}> </Text>,
-          <Text color={DRACULA.red}>-{removed}</Text>,
+          <Text color={PALETTE.comment}>{files} {files === 1 ? 'file' : 'files'} </Text>,
+          <Text color={PALETTE.green}>+{added}</Text>,
+          <Text color={PALETTE.comment}> </Text>,
+          <Text color={PALETTE.red}>-{removed}</Text>,
         ]),
   ]
 }
@@ -147,7 +147,7 @@ export const registerTurnStats: Register = on => {
     const clock = stats?.endedAt ? `⏱ ${formatClock(stats.endedAt)} · ` : '⏱ '
     return (
       <Box marginTop={1}>
-        <Text color={DRACULA.comment}>{clock}{formatDuration(e.props.durationMs)}</Text>
+        <Text color={PALETTE.comment}>{clock}{formatDuration(e.props.durationMs)}</Text>
         {stats ? renderStats(stats, Text) : null}
       </Box>
     )

@@ -1,5 +1,5 @@
-// Dracula palette: https://draculatheme.com/contribute
-export const DRACULA = {
+// Theme palette
+export const PALETTE = {
   background: '#282a36',
   currentLine: '#44475a',
   foreground: '#f8f8f2',

@@ -1,6 +1,6 @@
 {
   "name": "claude-mod",
-  "description": "Dracula theme for Claude Code",
+  "description": "A themed terminal interface for Claude Code",
   "owner": {
     "name": "streetclips"
   },
@@ -8,7 +8,7 @@
     {
       "name": "alejandrocantero-claude-mod",
       "source": "./",
-      "description": "Dracula theme for Claude Code: message boxes and markdown colours."
+      "description": "A themed terminal interface for Claude Code: message boxes and markdown colours."
     }
   ]
 }

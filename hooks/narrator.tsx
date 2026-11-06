@@ -3,7 +3,7 @@ import type { EngineInterface, Register, RenderNode, ToolCallInput, ToolCallResu
 
 import { LINUX, MACOS, WINDOWS, powershell } from './narrator-speaker'
 import { cut, guessLanguage, parseNarration, plain } from './narrator-text'
-import { DRACULA } from './palette'
+import { PALETTE } from './palette'
 
 type Platform = 'macos' | 'windows' | 'linux' | 'other'
 type Command = { argv: string[]; env: Record<string, string> }
@@ -11,8 +11,8 @@ type Narration = { isActive: boolean; abort: AbortController }
 type LinuxSpeech = { tool?: 'spd-say' | 'espeak-ng' | 'espeak'; languages: Set<string> }
 
 const STORE_KEY = 'narratorEnabled'
-const SWITCH_ON = { label: '⏵ narrator on', color: DRACULA.green }
-const SWITCH_OFF = { label: '⏸︎ narrator off', color: DRACULA.comment }
+const SWITCH_ON = { label: '⏵ narrator on', color: PALETTE.green }
+const SWITCH_OFF = { label: '⏸︎ narrator off', color: PALETTE.comment }
 const MAX_ACTIONS = 40
 const DETAILS = ['description', 'file_path', 'notebook_path', 'path', 'pattern', 'url', 'query', 'skill', 'command', 'prompt']
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:[-_][a-z0-9]{2,8})*$/i
@@ -264,7 +264,7 @@ export const registerNarrator: Register = (on, options) => {
     return (
       <Box flexDirection="row">
         {hasBeneath ? beneath : null}
-        {hasBeneath ? <Text color={DRACULA.comment}> · </Text> : null}
+        {hasBeneath ? <Text color={PALETTE.comment}> · </Text> : null}
         <Button key="narrator" plain onPress={() => void setEnabled($)}>
           <Text color={color}>{label}</Text>
         </Button>

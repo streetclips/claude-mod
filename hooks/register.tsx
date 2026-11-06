@@ -4,7 +4,7 @@ import { fileRefs, forgetFiles, type FileRef } from './file-links'
 import { renderMarkdown } from './markdown'
 import { noteTool, noteTurn, registerNarrator } from './narrator'
 import { openFile } from './open-file'
-import { DRACULA } from './palette'
+import { PALETTE } from './palette'
 import { countTool, registerTurnStats, startTurnStats } from './turn-stats'
 
 const openDetails = atom({ plugin: 'alejandrocantero-claude-mod', key: 'openDetails' } as const, [])
@@ -49,13 +49,13 @@ export const register: Register = (on, options) => {
     if (e.props.task || e.props.from) return next(e)
     const { Box, Text } = $.ui.resolve(e)
     return (
-      <Box backgroundColor={DRACULA.currentLine} paddingX={2} paddingY={1} marginTop={1}>
+      <Box backgroundColor={PALETTE.currentLine} paddingX={2} paddingY={1} marginTop={1}>
         <Text>{e.props.text}</Text>
       </Box>
     )
   })
 
-  // Claude's replies: padded box in the reply colour, markdown in Dracula colours.
+  // Claude's replies: padded box in the reply colour, markdown in the theme colours.
   // The box is drawn before the paths are looked up, and drawn again once they are.
   on('ui.render', { component: 'AssistantMessage' }, async ($, e) => {
     const { text, refs } = await read($, memberOf(fileRefsOf, e))
@@ -68,7 +68,7 @@ export const register: Register = (on, options) => {
     const toggle = (index: number) =>
       void update($, member, held => (held.includes(index) ? held.filter(n => n !== index) : [...held, index]))
     return (
-      <Box backgroundColor={DRACULA.background} paddingX={2} paddingY={1} marginTop={1}>
+      <Box backgroundColor={PALETTE.background} paddingX={2} paddingY={1} marginTop={1}>
         {renderMarkdown(e.props.text, t, { open, toggle })}
       </Box>
     )

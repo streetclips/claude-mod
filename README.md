@@ -1,6 +1,6 @@
 # claude-mod
 
-A [Dracula](https://draculatheme.com)-coloured interface for Claude Code: your prompts and Claude's replies in padded boxes, markdown in theme colours, clickable file paths, a turn footer with tokens and diff stats, and an optional narrator that reads each turn out loud.
+A themed interface for Claude Code: your prompts and Claude's replies in padded boxes, markdown in theme colours, clickable file paths, a turn footer with tokens and diff stats, and an optional narrator that reads each turn out loud.
 
 By [Alejandro Cantero](https://alejandrocantero.dev).
 
@@ -34,7 +34,7 @@ Then `/reload-plugins`. If the boxes do not change, restart Claude Code.
 ## What it does
 
 1. **Prompt and reply boxes.** Every message you send and every reply Claude writes is drawn in its own padded, coloured box.
-2. **Themed markdown.** Headings, `inline code`, **bold**, links, bullets and quotes each get a Dracula colour. Code blocks and tables keep Claude Code's own rendering.
+2. **Themed markdown.** Headings, `inline code`, **bold**, links, bullets and quotes each get a colour from the palette. Code blocks and tables keep Claude Code's own rendering.
 3. **Clickable paths.** Files and folders named in a reply (`hooks/markdown.tsx:36`, `src/util.ts`, `~/.config/ttt`) open with a click: text files in [ttt](https://tttedit.dev) at that line, everything else with the system's `open`. A bare filename is resolved in the workspace, `node_modules` and `vendor` aside, and opens when only one file can be meant. Requires `"tui": "fullscreen"`.
 4. **Turn footer.** Finish time, duration, input and output tokens, context change, tool count, and files changed with added and removed lines.
 5. **Narrator.** After each turn, Claude says out loud what it did, in the language it answered in, with the best free voice installed (Siri on macOS, OneCore on Windows, speech-dispatcher or espeak-ng on Linux). Toggle it with the `⏸ narrator off` button in the prompt footer or with `/narrator [on | off | stop]`. The setting survives across sessions.
@@ -74,7 +74,7 @@ hooks/hooks.json
 | `hooks/narrator.tsx` | `/narrator` command, toggle button and speech |
 | `hooks/narrator-speaker.ts` | Picks a synthesizer per platform |
 | `hooks/narrator-text.ts` | Cuts the narration and strips it to plain text |
-| `hooks/palette.ts` | The Dracula palette |
+| `hooks/palette.ts` | The colour palette |
 | `types/index.d.ts` | The plugin's state contract |
 
 ## Development

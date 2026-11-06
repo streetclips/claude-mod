@@ -1,6 +1,6 @@
 # claude-mod
 
-Claude Code plugin that draws prompts and replies in Dracula-coloured boxes. Claude Code installs it from the GitHub marketplace `streetclips/claude-mod`, so a change reaches Claude Code only after it is pushed.
+Claude Code plugin that draws prompts and replies in coloured boxes. Claude Code installs it from the GitHub marketplace `streetclips/claude-mod`, so a change reaches Claude Code only after it is pushed.
 
 ## Shipping a change
 

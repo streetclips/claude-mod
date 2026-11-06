@@ -151,7 +151,7 @@ test('the switch goes after the mode labels, and alone where there are none', as
   expect(await labelled.find({ key: 'narrator' })).toBeDefined()
 })
 
-test('on reads in Dracula green, off in the comment colour', async ($, on) => {
+test('on reads in the theme green, off in the comment colour', async ($, on) => {
   world(on)
   await startSession($)
   const ui = await footer($)

@@ -2,16 +2,16 @@
 // Tables fall back to the engine's Markdown element.
 
 import { fileUrl, PLAIN_REF, type FileRef } from './file-links'
-import { DRACULA } from './palette'
+import { PALETTE } from './palette'
 
 export const MD: Record<'code' | 'bold' | 'heading' | 'link' | 'bullet' | 'quote' | 'rule', string> = {
-  code: DRACULA.green,
-  bold: DRACULA.orange,
-  heading: DRACULA.purple,
-  link: DRACULA.cyan,
-  bullet: DRACULA.pink,
-  quote: DRACULA.comment,
-  rule: DRACULA.comment,
+  code: PALETTE.green,
+  bold: PALETTE.orange,
+  heading: PALETTE.purple,
+  link: PALETTE.cyan,
+  bullet: PALETTE.pink,
+  quote: PALETTE.comment,
+  rule: PALETTE.comment,
 }
 
 type El = any

@@ -13,7 +13,7 @@ Code blocks and tables keep Claude Code's own rendering. While a reply streams, 
 ## Install
 
 ```
-/plugin marketplace add alejandrocantero/claude-mod
+/plugin marketplace add streetclips/claude-mod
 /plugin install alejandrocantero-claude-mod@claude-mod
 ```
 

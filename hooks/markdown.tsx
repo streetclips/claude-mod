@@ -103,8 +103,9 @@ const DETAILS_OPEN = /^\s*<details[^>]*>/i
 const DETAILS_TAG = /<details[^>]*>|<\/details\s*>/gi
 const indentOf = (l: string) => (l.match(/^\s*/)?.[0] ?? '').length
 
-// A tag sharing its line with text ("Intro <details>", "</details> after") gets its own line,
-// so the block parser sees it. Fenced code and `inline code` are left alone.
+// A details tag only delimits a block at the edge of a line: "<details> text" or "text </details>"
+// gets the tag on its own line so the block parser sees it. A tag mid-sentence — or inside
+// `inline code` — is HTML written as text and is left where it is.
 function splitTags(src: string): string[] {
   const out: string[] = []
   let fence: string | null = null
@@ -118,15 +119,21 @@ function splitTags(src: string): string[] {
       continue
     }
     if (fence) { out.push(line); continue }
-    const spans = [...line.matchAll(/`[^`\n]+`/g)].map(m => [m.index ?? 0, (m.index ?? 0) + m[0].length])
+    const spans: [number, number][] = []
+    for (const m of line.matchAll(/(`+)[^`][\s\S]*?\1/g)) {
+      const start = m.index ?? 0
+      spans.push([start, start + m[0].length])
+    }
     const inCode = (at: number) => spans.some(([from, to]) => at >= from && at < to)
     let at = 0
     for (const m of line.matchAll(DETAILS_TAG)) {
       const start = m.index ?? 0
+      const end = start + m[0].length
       if (inCode(start)) continue
+      if (line.slice(0, start).trim() && line.slice(end).trim()) continue
       if (start > at) out.push(line.slice(at, start))
       out.push(m[0])
-      at = start + m[0].length
+      at = end
     }
     if (at === 0) out.push(line)
     else if (at < line.length) out.push(line.slice(at))

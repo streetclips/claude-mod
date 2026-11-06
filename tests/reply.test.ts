@@ -79,6 +79,23 @@ test('a details inside another numbers after it and opens on its own', async ($)
   await ui.unmount()
 })
 
+test('a details tag mid-sentence stays text, alone or between backticks', async ($) => {
+  for (const text of [
+    'Un <details> aquí en medio no es un bloque.',
+    'así que `<details>` dentro de una frase se convertía en un bloque.',
+    'así que `` `<details>` `` dentro de una frase se convertía en un bloque.',
+  ]) {
+    const ui = await $.ui.mount({
+      plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: `mid-${text.length}`,
+      viewport: { columns: 100, rows: 40 },
+      props: { text, isFirstOfReply: true },
+    } as any)
+    expect(await ui.find({ type: 'Button' })).toBeFalsy()
+    expect(await ui.find({ type: 'Text', text: /<details>/ })).toBeTruthy()
+    await ui.unmount()
+  }
+})
+
 test('a details tag inside an inline code span stays text', async ($) => {
   const ui = await $.ui.mount({
     plugin: 'dracula', surface: 'terminal', component: 'AssistantMessage', requestId: 'inline-code-details',

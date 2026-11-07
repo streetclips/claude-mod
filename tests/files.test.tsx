@@ -13,14 +13,17 @@ const TREE: Record<string, 'file' | 'dir'> = {
   'node_modules/pkg/index.js': 'file',
   'vendor/lib/helper.php': 'file',
 }
-type Host = { herdr?: boolean; ttt?: boolean; tttOpen?: boolean; reuse?: boolean; mime?: string; git?: boolean; cwd?: string; gate?: Promise<void> }
+type Host = { herdr?: boolean; app?: boolean; window?: boolean; ttt?: boolean; tttOpen?: boolean; reuse?: boolean; mime?: string; git?: boolean; cwd?: string; gate?: Promise<void> }
 
-function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = true, mime = 'text/plain; charset=us-ascii', git = false, cwd = '/repo', gate }: Host = {}) {
+function fakeHost(on: any, { herdr = true, app = false, window = true, ttt = true, tttOpen = true, reuse = true, mime = 'text/plain; charset=us-ascii', git = false, cwd = '/repo', gate }: Host = {}) {
   const ran: string[] = []
   const done = (exitCode: number, stdout = '') =>
     ({ value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
-  on('env.get', (_: unknown, e: { name: string }) =>
-    ({ value: (herdr ? ({ HOME: '/home/me', HERDR_ENV: '1', HERDR_BIN_PATH: 'herdr' } as Record<string, string>) : { HOME: '/home/me' })[e.name] }))
+  // herdr-app: herdr-core (`hc`) runs the terminals, `herdr-app` arranges the window
+  const env: Record<string, string> = app
+    ? { HOME: '/home/me', HC_TERMINAL_ID: 't2' }
+    : herdr ? { HOME: '/home/me', HERDR_ENV: '1', HERDR_BIN_PATH: 'herdr' } : { HOME: '/home/me' }
+  on('env.get', (_: unknown, e: { name: string }) => ({ value: env[e.name] }))
   on('session.cwd', () => ({ value: cwd }))
   on('fs.stat', (_: unknown, e: { path: string }) => {
     const file = Object.keys(TREE).find(f => e.path.replace(/\/$/, '').endsWith(`/${f}`))
@@ -51,7 +54,18 @@ function fakeHost(on: any, { herdr = true, ttt = true, tttOpen = true, reuse = t
       return gate ? gate.then(() => listed) : listed
     }
     if (cmd === 'sh -c command -v ttt') return done(ttt ? 0 : 1)
+    if (cmd === 'sh -c command -v hc' || cmd === 'sh -c command -v herdr-app') return done(0)
+    if (cmd === 'herdr-app status') return done(window ? 0 : 1, window ? '{}' : 'no window')
     if (cmd === 'ttt --help') return done(0, reuse ? '--new-window  Start a separate editor' : '--welcome')
+    if (cmd === 'hc ls --json') {
+      return done(0, JSON.stringify({ terminals: [{ address: 't1' }, { address: 't2' }, { address: 't3' }] }))
+    }
+    if (cmd.startsWith('hc get ')) {
+      const foreground = tttOpen && e.argv[2] === 't3' ? { name: 'ttt', argv: ['ttt', '/repo'], pid: 7 } : { name: 'zsh', argv: ['/bin/zsh', '-l'], pid: 3 }
+      return done(0, JSON.stringify({ address: e.argv[2], foreground }))
+    }
+    if (cmd.startsWith('herdr-app do pane.focus')) return done(0, '{"ok":true}')
+    if (cmd.startsWith('herdr-app do tab.new')) return done(0, '{"tab":"tb3","terminal":"t9"}')
     if (cmd === 'herdr pane list') {
       return done(0, JSON.stringify({ result: { panes: [{ pane_id: 'w:p1', tab_id: 'w:t1' }, { pane_id: 'w:p2', tab_id: 'w:t2' }] } }))
     }
@@ -108,6 +122,30 @@ test('outside herdr a text file opens with the system', async ($, on) => {
   const ran = fakeHost(on, { herdr: false })
   await press($, 'See `README.md`', ['file-0'])
   expect(ran).toContain('open /repo/README.md')
+})
+
+test('in herdr-app a text file opens in the running ttt and focuses its terminal', async ($, on) => {
+  const ran = fakeHost(on, { app: true })
+  await press($, 'At `hooks/markdown.tsx:4:2`', ['file-0'])
+  expect(ran).toContain('hc ls --json')
+  expect(ran).toContain('hc get t3')
+  expect(ran.some(c => c.startsWith('perl -e') && c.endsWith(' ttt /repo/hooks/markdown.tsx:4:2'))).toBe(true)
+  expect(ran).toContain('herdr-app do pane.focus --terminal t3')
+  expect(ran.some(c => c.startsWith('herdr-app do tab.new'))).toBe(false)
+})
+
+test('in herdr-app with no ttt open a text file opens in a new tab', async ($, on) => {
+  const ran = fakeHost(on, { app: true, tttOpen: false })
+  await press($, 'See `README.md`', ['file-0'])
+  expect(ran).toContain('herdr-app do tab.new --name ttt --folder /repo --argv ["ttt","/repo","/repo/README.md"]')
+  expect(ran.some(c => c.startsWith('herdr '))).toBe(false)
+})
+
+test('in herdr-app with the window closed a text file opens with the system', async ($, on) => {
+  const ran = fakeHost(on, { app: true, window: false })
+  await press($, 'See `README.md`', ['file-0'])
+  expect(ran).toContain('open /repo/README.md')
+  expect(ran.some(c => c.startsWith('herdr-app do'))).toBe(false)
 })
 
 test('text means a text charset, never an image, video or audio', () => {

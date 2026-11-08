@@ -145,7 +145,7 @@ export async function fileRefs($: EngineInterface, text: string) {
   }))
   await Promise.all(looked.map(async ({ span, line, column, anchor, found }) => {
     const at = 'at' in found ? found.at : 'infer' in found ? await infer($, cwd, found.infer) : null
-    // ttt takes one line: a range opens at its first line
+    // the editor takes one line: a range opens at its first line
     if (at) refs[span] = { ...at, line: (line ?? anchor)?.split('-')[0], column }
   }))
   return refs

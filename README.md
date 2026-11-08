@@ -37,7 +37,7 @@ Then `/reload-plugins`. If the boxes do not change, restart Claude Code.
 
 1. **Prompt and reply boxes.** Every message you send and every reply Claude writes is drawn in its own padded, coloured box.
 2. **Themed markdown.** Headings, `inline code`, **bold**, links, bullets and quotes each get a colour from the palette. Code blocks and tables keep Claude Code's own rendering.
-3. **Clickable paths.** Files and folders named in a reply (`hooks/markdown.tsx:36`, `src/util.ts`, `~/.config/ttt`) open with a click: text files in [ttt](https://tttedit.dev) at that line, everything else with the system's `open`. A bare filename is resolved in the workspace, `node_modules` and `vendor` aside, and opens when only one file can be meant. Requires `"tui": "fullscreen"`.
+3. **Clickable paths.** Files and folders named in a reply (`hooks/markdown.tsx:36`, `src/util.ts`, `~/.config/herdr-app`) open with a click: text files in an editor tab of the Herdr desktop app, everything else with the system's `open`. A bare filename is resolved in the workspace, `node_modules` and `vendor` aside, and opens when only one file can be meant. Requires `"tui": "fullscreen"`.
 4. **Turn footer.** Finish time, duration, input and output tokens, context change, tool count, and files changed with added and removed lines.
 5. **Narrator.** After each turn, Claude says out loud what it did, in the language it answered in, with the best free voice installed (Siri on macOS, OneCore on Windows, speech-dispatcher or espeak-ng on Linux). Toggle it with the `⏸ narrator off` button in the prompt footer or with `/narrator [on | off | stop]`. The setting survives across sessions.
 
@@ -71,7 +71,7 @@ hooks/hooks.json
 | `hooks/register.tsx` | Entry point: renders both boxes and wires the other modules |
 | `hooks/markdown.tsx` | Markdown renderer and its colour map |
 | `hooks/file-links.ts` | Finds the paths a reply names and resolves bare filenames |
-| `hooks/open-file.ts` | Opens a path in ttt, a Herdr tab (app or older `herdr`), or with `open` |
+| `hooks/open-file.ts` | Opens a path in a Herdr app editor tab, or with `open` |
 | `hooks/turn-stats.tsx` | Collects per-turn usage and renders the footer |
 | `hooks/narrator.tsx` | `/narrator` command, toggle button and speech |
 | `hooks/narrator-speaker.ts` | Picks a synthesizer per platform |
@@ -84,16 +84,14 @@ hooks/hooks.json
 ```
 claude --plugin-dir .      # try the working copy without installing it
 claude plugin validate .   # manifest and hook checks
-claude plugin test .       # 49 tests
+claude plugin test .       # 52 tests
 ```
 
 To change the colours, edit `PROMPT_BG` and `REPLY_BG` in `hooks/register.tsx` and `MD` in `hooks/markdown.tsx`. To ship a change, follow `CLAUDE.md`.
 
-## Opening files in ttt
+## Opening files in Herdr's editor
 
-A click opens the file in the ttt already running when ttt can take files from outside (`--new-window` in `ttt --help`, not in a release up to 1.9.0) and `"reuseWindow": true` is set in its `settings.json` (`~/.config/ttt/`); until then each click opens a new tab. Outside herdr, or without ttt installed, every click falls back to `open`.
-
-Both Herdr generations are supported: the Herdr desktop app (`herdr-app`, with its terminals in `hc`) and the older `herdr`. Inside the app, a click finds the ttt through `hc ls`/`hc get` and focuses it with `herdr-app do pane.focus`; a new tab is `herdr-app do tab.new`. Inside the older `herdr`, it uses `herdr pane list`/`pane process-info` and `herdr tab create` + `pane run`. The app is detected by `HC_TERMINAL_ID`, the older one by `HERDR_ENV=1`.
+Inside the Herdr desktop app (`HC_TERMINAL_ID` set and `herdr-app status` answering), a click on a text file runs `herdr-app do tab.new` with the `compact-editor` mod, the file in its `props`, so the file opens in a new editor tab of the selected space. The line and column travel in `props` too, though the editor opens at the top. Outside the app, in the older `herdr`, or when the tab cannot open, the click falls back to `open`.
 
 ## License
 

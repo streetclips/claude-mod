@@ -3,7 +3,7 @@ import { test, expect } from 'claude-code/testing'
 import { fileUrl } from '../hooks/file-links'
 import { isText } from '../hooks/open-file'
 
-const FILES: Record<string, 'file' | 'dir'> = { 'hooks/markdown.tsx': 'file', 'README.md': 'file', "it's.md": 'file', 'logo.png': 'file', src: 'dir', '.config/ttt': 'dir' }
+const FILES: Record<string, 'file' | 'dir'> = { 'hooks/markdown.tsx': 'file', 'README.md': 'file', "it's.md": 'file', 'logo.png': 'file', src: 'dir', '.config/herdr-app': 'dir' }
 // what a walk of the workspace finds, node_modules and vendor included
 const TREE: Record<string, 'file' | 'dir'> = {
   ...FILES,
@@ -13,13 +13,12 @@ const TREE: Record<string, 'file' | 'dir'> = {
   'node_modules/pkg/index.js': 'file',
   'vendor/lib/helper.php': 'file',
 }
-type Host = { herdr?: boolean; app?: boolean; window?: boolean; ttt?: boolean; tttOpen?: boolean; reuse?: boolean; mime?: string; git?: boolean; cwd?: string; gate?: Promise<void> }
+type Host = { herdr?: boolean; app?: boolean; window?: boolean; editor?: boolean; mime?: string; git?: boolean; cwd?: string; gate?: Promise<void> }
 
-function fakeHost(on: any, { herdr = true, app = false, window = true, ttt = true, tttOpen = true, reuse = true, mime = 'text/plain; charset=us-ascii', git = false, cwd = '/repo', gate }: Host = {}) {
+function fakeHost(on: any, { herdr = false, app = true, window = true, editor = true, mime = 'text/plain; charset=us-ascii', git = false, cwd = '/repo', gate }: Host = {}) {
   const ran: string[] = []
   const done = (exitCode: number, stdout = '') =>
     ({ value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
-  // herdr-app: herdr-core (`hc`) runs the terminals, `herdr-app` arranges the window
   const env: Record<string, string> = app
     ? { HOME: '/home/me', HC_TERMINAL_ID: 't2' }
     : herdr ? { HOME: '/home/me', HERDR_ENV: '1', HERDR_BIN_PATH: 'herdr' } : { HOME: '/home/me' }
@@ -53,30 +52,18 @@ function fakeHost(on: any, { herdr = true, app = false, window = true, ttt = tru
       const listed = done(0, Object.keys(TREE).join('\0'))
       return gate ? gate.then(() => listed) : listed
     }
-    if (cmd === 'sh -c command -v ttt') return done(ttt ? 0 : 1)
-    if (cmd === 'sh -c command -v hc' || cmd === 'sh -c command -v herdr-app') return done(0)
+    if (cmd === 'sh -c command -v herdr-app') return done(0)
     if (cmd === 'herdr-app status') return done(window ? 0 : 1, window ? '{}' : 'no window')
-    if (cmd === 'ttt --help') return done(0, reuse ? '--new-window  Start a separate editor' : '--welcome')
-    if (cmd === 'hc ls --json') {
-      return done(0, JSON.stringify({ terminals: [{ address: 't1' }, { address: 't2' }, { address: 't3' }] }))
-    }
-    if (cmd.startsWith('hc get ')) {
-      const foreground = tttOpen && e.argv[2] === 't3' ? { name: 'ttt', argv: ['ttt', '/repo'], pid: 7 } : { name: 'zsh', argv: ['/bin/zsh', '-l'], pid: 3 }
-      return done(0, JSON.stringify({ address: e.argv[2], foreground }))
-    }
-    if (cmd.startsWith('herdr-app do pane.focus')) return done(0, '{"ok":true}')
-    if (cmd.startsWith('herdr-app do tab.new')) return done(0, '{"tab":"tb3","terminal":"t9"}')
-    if (cmd === 'herdr pane list') {
-      return done(0, JSON.stringify({ result: { panes: [{ pane_id: 'w:p1', tab_id: 'w:t1' }, { pane_id: 'w:p2', tab_id: 'w:t2' }] } }))
-    }
-    if (cmd.startsWith('herdr pane process-info')) {
-      const procs = tttOpen && e.argv[4] === 'w:p2' ? [{ name: 'ttt', argv0: 'ttt', pid: 7 }] : [{ name: 'zsh', argv0: '-zsh', pid: 3 }]
-      return done(0, JSON.stringify({ result: { process_info: { foreground_processes: procs } } }))
-    }
-    if (cmd.startsWith('herdr tab create')) return done(0, JSON.stringify({ result: { tab: { tab_id: 'w:t3' }, root_pane: { pane_id: 'w:p3' } } }))
+    if (cmd.startsWith('herdr-app do tab.new')) return editor ? done(0, '{"tab":"tb3","pane":"pe9"}') : done(1, '{"error":"no mod compact-editor"}')
     return done(0)
   })
   return ran
+}
+
+// the command that opens a file in an editor tab of the Herdr desktop app
+function editorTab(file: string, line?: number, column?: number) {
+  const props = { file, ...(line ? { line } : {}), ...(column ? { column } : {}) }
+  return `herdr-app do tab.new ${JSON.stringify({ name: file.split('/').pop(), mod: 'compact-editor', props })}`
 }
 
 async function press($: any, text: string, keys: string[]) {
@@ -88,26 +75,23 @@ async function press($: any, text: string, keys: string[]) {
   await ui.unmount()
 }
 
-test('a text file opens in the running ttt and focuses its tab', async ($, on) => {
+test('in herdr-app a text file opens in an editor tab at its line and column', async ($, on) => {
   const ran = fakeHost(on)
   await press($, 'At `hooks/markdown.tsx:4:2`', ['file-0'])
-  expect(ran.some(c => c.startsWith('perl -e') && c.endsWith(' ttt /repo/hooks/markdown.tsx:4:2'))).toBe(true)
-  expect(ran).toContain('herdr tab focus w:t2')
-  expect(ran.some(c => c.startsWith('herdr tab create'))).toBe(false)
+  expect(ran).toContain(editorTab('/repo/hooks/markdown.tsx', 4, 2))
+  expect(ran.some(c => c.startsWith('open '))).toBe(false)
 })
 
-test('a ttt that cannot take files from outside gets a new tab and never runs on this terminal', async ($, on) => {
-  const ran = fakeHost(on, { reuse: false })
-  await press($, 'At `hooks/markdown.tsx:4`', ['file-0'])
-  expect(ran).toContain(`herdr pane run w:p3 ttt '/repo' '/repo/hooks/markdown.tsx:4'`)
-  expect(ran.some(c => c.startsWith('perl') || (c.startsWith('ttt ') && c !== 'ttt --help'))).toBe(false)
-})
-
-test('with no ttt open a text file opens in a new herdr tab', async ($, on) => {
-  const ran = fakeHost(on, { tttOpen: false })
+test('a quote in the name reaches the editor unescaped', async ($, on) => {
+  const ran = fakeHost(on)
   await press($, "In `it's.md:9`", ['file-0'])
-  expect(ran).toContain('herdr tab create --cwd /repo --label ttt --focus')
-  expect(ran).toContain(`herdr pane run w:p3 ttt '/repo' '/repo/it'\\''s.md:9'`)
+  expect(ran).toContain(editorTab("/repo/it's.md", 9))
+})
+
+test('ttt is never run', async ($, on) => {
+  const ran = fakeHost(on)
+  await press($, 'At `hooks/markdown.tsx:4` and `README.md`', ['file-0', 'file-1'])
+  expect(ran.some(c => /(^|\s)ttt(\s|$)/.test(c))).toBe(false)
 })
 
 test('images, folders and binaries open with the system', async ($, on) => {
@@ -115,37 +99,34 @@ test('images, folders and binaries open with the system', async ($, on) => {
   await press($, 'See `logo.png` and `src/`', ['file-0', 'file-1'])
   expect(ran).toContain('open /repo/logo.png')
   expect(ran).toContain('open /repo/src')
-  expect(ran.some(c => c.startsWith('ttt'))).toBe(false)
+  expect(ran.some(c => c.startsWith('herdr-app do'))).toBe(false)
 })
 
 test('outside herdr a text file opens with the system', async ($, on) => {
-  const ran = fakeHost(on, { herdr: false })
+  const ran = fakeHost(on, { app: false })
   await press($, 'See `README.md`', ['file-0'])
   expect(ran).toContain('open /repo/README.md')
 })
 
-test('in herdr-app a text file opens in the running ttt and focuses its terminal', async ($, on) => {
-  const ran = fakeHost(on, { app: true })
-  await press($, 'At `hooks/markdown.tsx:4:2`', ['file-0'])
-  expect(ran).toContain('hc ls --json')
-  expect(ran).toContain('hc get t3')
-  expect(ran.some(c => c.startsWith('perl -e') && c.endsWith(' ttt /repo/hooks/markdown.tsx:4:2'))).toBe(true)
-  expect(ran).toContain('herdr-app do pane.focus --terminal t3')
-  expect(ran.some(c => c.startsWith('herdr-app do tab.new'))).toBe(false)
-})
-
-test('in herdr-app with no ttt open a text file opens in a new tab', async ($, on) => {
-  const ran = fakeHost(on, { app: true, tttOpen: false })
+test('in the older herdr a text file opens with the system', async ($, on) => {
+  const ran = fakeHost(on, { app: false, herdr: true })
   await press($, 'See `README.md`', ['file-0'])
-  expect(ran).toContain('herdr-app do tab.new --name ttt --folder /repo --argv ["ttt","/repo","/repo/README.md"]')
+  expect(ran).toContain('open /repo/README.md')
   expect(ran.some(c => c.startsWith('herdr '))).toBe(false)
 })
 
 test('in herdr-app with the window closed a text file opens with the system', async ($, on) => {
-  const ran = fakeHost(on, { app: true, window: false })
+  const ran = fakeHost(on, { window: false })
   await press($, 'See `README.md`', ['file-0'])
   expect(ran).toContain('open /repo/README.md')
   expect(ran.some(c => c.startsWith('herdr-app do'))).toBe(false)
+})
+
+test('when the editor tab cannot open, a text file opens with the system', async ($, on) => {
+  const ran = fakeHost(on, { editor: false })
+  await press($, 'See `README.md`', ['file-0'])
+  expect(ran).toContain(editorTab('/repo/README.md'))
+  expect(ran).toContain('open /repo/README.md')
 })
 
 test('text means a text charset, never an image, video or audio', () => {
@@ -165,29 +146,29 @@ test('file urls are absolute and encoded', () => {
 test('a line range opens at its first line, and a full stop after the path is not part of it', async ($, on) => {
   const ran = fakeHost(on)
   await press($, 'See `hooks/markdown.tsx:3-13`, `README.md.` and [readme](README.md#L3-L13).', ['file-0', 'file-1', 'file-2'])
-  expect(ran.some(c => c.endsWith(' ttt /repo/hooks/markdown.tsx:3'))).toBe(true)
-  expect(ran.some(c => c.endsWith(' ttt /repo/README.md'))).toBe(true)
-  expect(ran.some(c => c.endsWith(' ttt /repo/README.md:3'))).toBe(true)
+  expect(ran).toContain(editorTab('/repo/hooks/markdown.tsx', 3))
+  expect(ran).toContain(editorTab('/repo/README.md'))
+  expect(ran).toContain(editorTab('/repo/README.md', 3))
 })
 
 test('a path under ~ opens from the home folder', async ($, on) => {
   const ran = fakeHost(on)
-  await press($, 'Settings live in `~/.config/ttt`.', ['file-0'])
-  expect(ran).toContain('open /home/me/.config/ttt')
+  await press($, 'Settings live in `~/.config/herdr-app`.', ['file-0'])
+  expect(ran).toContain('open /home/me/.config/herdr-app')
 })
 
 test('a file named in running text without its path is found in the workspace and opens', async ($, on) => {
   const ran = fakeHost(on)
   await press($, 'Open markdown.tsx:12 and README.md.', ['file-0', 'file-1'])
-  expect(ran.some(c => c.endsWith(' ttt /repo/hooks/markdown.tsx:12'))).toBe(true)
-  expect(ran.some(c => c.endsWith(' ttt /repo/README.md'))).toBe(true)
+  expect(ran).toContain(editorTab('/repo/hooks/markdown.tsx', 12))
+  expect(ran).toContain(editorTab('/repo/README.md'))
 })
 
 test('a name without its path is found with one git listing, and a direct path never walks', async ($, on) => {
   const ran = fakeHost(on, { git: true, cwd: '/repo/git' })
   await press($, 'See `hooks/markdown.tsx:4` and markdown.tsx.', ['file-0', 'file-1'])
   expect(ran.filter(c => c.startsWith('git ls-files'))).toHaveLength(1)
-  expect(ran.some(c => c.endsWith(' ttt /repo/hooks/markdown.tsx'))).toBe(true)
+  expect(ran).toContain(editorTab('/repo/hooks/markdown.tsx'))
 })
 
 test('a reply naming only paths that resolve never lists the workspace', async ($, on) => {
@@ -261,8 +242,8 @@ test('files a reply names become buttons that open them; headings keep a file li
   expect((await ui.findAll({ type: 'Button' })).length).toBe(2)
   expect(JSON.stringify(await ui.drawn())).toContain('"href":"file:///repo/README.md"')
   await ui.press({ key: 'file-0' })
-  expect(ran.some(c => c.endsWith(' ttt /repo/hooks/markdown.tsx:36'))).toBe(true)
+  expect(ran).toContain(editorTab('/repo/hooks/markdown.tsx', 36))
   await ui.press({ key: 'file-1' })
-  expect(ran.some(c => c.endsWith(' ttt /repo/README.md:3'))).toBe(true)
+  expect(ran).toContain(editorTab('/repo/README.md', 3))
   await ui.unmount()
 })

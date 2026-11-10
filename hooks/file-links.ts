@@ -10,6 +10,8 @@ const SPAN = /`([^`\n]+)`|\[[^\]\n]+\]\(([^)\s]+)\)/g
 const FILE_REF = /^([^\s:#`]+?)(?::(\d+(?:-\d+)?)(?::(\d+))?|#L(\d+(?:-L?\d+)?))?(\.)?$/
 // a name in running text: `markdown.tsx`, `hooks/markdown.tsx:12`, `a.ts:3-9`
 export const PLAIN_REF = /(?<![\w./@-])((?:[\w@-]+\/)*[\w@-][\w.@-]*\.[A-Za-z][A-Za-z0-9]{1,4})(?::(\d+(?:-\d+)?)(?::(\d+))?)?(?![\w/])/g
+// a folder in running text by its whole path: `/Users/me/videos/`, `~/videos`
+const ABSOLUTE = /(?<![\w.:/@~-])~?\/[\w.@-]+(?:\/[\w.@-]+)*/g
 
 // folders never walked for a name: too big, and never the file a reply means
 const SKIP = new Set(['node_modules', 'vendor', '.git'])
@@ -127,6 +129,14 @@ const prose = (text: string) => text
   .replace(/^[ \t]*(`{3,}|~{3,})[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, ' ')
   .replace(SPAN, ' ')
 
+// the folders a reply names: a name found nowhere else is looked for inside them
+async function folders($: EngineInterface, cwd: string, text: string, refs: Record<string, FileRef>) {
+  const paths = new Set(Array.from(prose(text).matchAll(ABSOLUTE), m => m[0].replace(/\.+$/, '')))
+  const named = await Promise.all([...paths].map(async path => stat($, cwd, await expand($, path))))
+  const dirs = [...Object.values(refs), ...named].filter(at => at?.kind === 'dir').map(at => at!.path.replace(/[\\/]$/, ''))
+  return [...new Set(dirs)]
+}
+
 export async function fileRefs($: EngineInterface, text: string) {
   const cwd = await $.session.cwd()
   const spans = new Set<string>()
@@ -144,10 +154,20 @@ export async function fileRefs($: EngineInterface, text: string) {
     const found = path ? await direct($, cwd, path) : {}
     return { span, line, column, anchor, found }
   }))
+  const missed: { span: string; name: string; line?: string; column?: string; anchor?: string }[] = []
   await Promise.all(looked.map(async ({ span, line, column, anchor, found }) => {
     const at = 'at' in found ? found.at : 'infer' in found ? await infer($, cwd, found.infer) : null
     // the editor takes one line: a range opens at its first line
     if (at) refs[span] = { ...at, line: (line ?? anchor)?.split('-')[0], column }
+    else if ('infer' in found) missed.push({ span, name: found.infer, line, column, anchor })
+  }))
+  if (!missed.length) return refs
+  const dirs = await folders($, cwd, text, refs)
+  await Promise.all(missed.map(async ({ span, name, line, column, anchor }) => {
+    const hits = (await Promise.all(dirs.map(dir => stat($, cwd, `${dir}/${name}`)))).filter(hit => hit !== null)
+    // two folders holding the name: no telling which one is meant
+    const [at] = hits
+    if (at && hits.length === 1) refs[span] = { ...at, line: (line ?? anchor)?.split('-')[0], column }
   }))
   return refs
 }

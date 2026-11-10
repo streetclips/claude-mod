@@ -13,6 +13,8 @@ const TREE: Record<string, 'file' | 'dir'> = {
   'node_modules/pkg/index.js': 'file',
   'vendor/lib/helper.php': 'file',
 }
+// a folder outside the workspace and the files only it holds
+const OUTSIDE: Record<string, 'file' | 'dir'> = { '/out/videos': 'dir', '/out/videos/before.mp4': 'file', '/out/videos/after.mp4': 'file', '/out/other': 'dir', '/out/other/after.mp4': 'file' }
 type Host = { herdr?: boolean; app?: boolean; window?: boolean; editor?: boolean; mime?: string; git?: boolean; cwd?: string; gate?: Promise<void> }
 
 function fakeHost(on: any, { herdr = false, app = true, window = true, editor = true, mime = 'text/plain; charset=us-ascii', git = false, cwd = '/repo', gate }: Host = {}) {
@@ -26,6 +28,8 @@ function fakeHost(on: any, { herdr = false, app = true, window = true, editor = 
   on('session.cwd', () => ({ value: cwd }))
   on('fs.stat', (_: unknown, e: { path: string }) => {
     if (e.path.includes('/web-gateway/')) return { deny: 'ENOENT' }
+    const outside = OUTSIDE[e.path.replace(/\/$/, '')]
+    if (outside) return { value: { kind: outside, size: 1, mtimeMs: 0, isLink: false, realPath: e.path.replace(/\/$/, '') } }
     const file = Object.keys(TREE).find(f => e.path.replace(/\/$/, '').endsWith(`/${f}`))
     return file
       ? { value: { kind: TREE[file], size: 1, mtimeMs: 0, isLink: false, realPath: e.path.startsWith('/home/me') ? e.path : `/repo/${file}` } }
@@ -212,6 +216,24 @@ test('a path that starts at the workspace folder itself opens the file inside it
   const ran = fakeHost(on, { git: true, cwd: '/home/me/web-gateway' })
   await press($, 'That file -> web-gateway/hooks/open-file.ts', ['file-0'])
   expect(ran).toContain(editorTab('/repo/hooks/open-file.ts'))
+})
+
+test('a name found nowhere else opens from the folder the reply names', async ($, on) => {
+  const ran = fakeHost(on, { mime: 'video/mp4; charset=binary' })
+  await press($, 'The videos are in /out/videos/ (before.mp4 and `after.mp4`), outside git.', ['file-0', 'file-1'])
+  expect(ran).toContain('open /out/videos/before.mp4')
+  expect(ran).toContain('open /out/videos/after.mp4')
+})
+
+test('a name two named folders hold is not linked', async ($, on) => {
+  fakeHost(on)
+  const ui = await $.ui.mount({
+    plugin: 'alejandrocantero-claude-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'two-folders',
+    viewport: { columns: 100, rows: 40 },
+    props: { text: 'Compare /out/videos and /out/other. Both hold after.mp4, only one holds before.mp4.', isFirstOfReply: true },
+  } as any)
+  expect((await ui.findAll({ type: 'Button' })).length).toBe(1)
+  await ui.unmount()
 })
 
 test('a path outside the workspace is not inferred from its name', async ($, on) => {

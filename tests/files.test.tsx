@@ -25,6 +25,7 @@ function fakeHost(on: any, { herdr = false, app = true, window = true, editor = 
   on('env.get', (_: unknown, e: { name: string }) => ({ value: env[e.name] }))
   on('session.cwd', () => ({ value: cwd }))
   on('fs.stat', (_: unknown, e: { path: string }) => {
+    if (e.path.includes('/web-gateway/')) return { deny: 'ENOENT' }
     const file = Object.keys(TREE).find(f => e.path.replace(/\/$/, '').endsWith(`/${f}`))
     return file
       ? { value: { kind: TREE[file], size: 1, mtimeMs: 0, isLink: false, realPath: e.path.startsWith('/home/me') ? e.path : `/repo/${file}` } }
@@ -205,6 +206,12 @@ test('a name inside node_modules or vendor is never inferred, nor two files it c
   } as any)
   expect((await ui.findAll({ type: 'Button' })).length).toBe(1)
   await ui.unmount()
+})
+
+test('a path that starts at the workspace folder itself opens the file inside it', async ($, on) => {
+  const ran = fakeHost(on, { git: true, cwd: '/home/me/web-gateway' })
+  await press($, 'That file -> web-gateway/hooks/open-file.ts', ['file-0'])
+  expect(ran).toContain(editorTab('/repo/hooks/open-file.ts'))
 })
 
 test('a path outside the workspace is not inferred from its name', async ($, on) => {

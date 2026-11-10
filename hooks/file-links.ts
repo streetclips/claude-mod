@@ -104,7 +104,8 @@ const depth = (path: string) => path.split('/').length
 async function infer($: EngineInterface, cwd: string, path: string) {
   const { names } = await index($, cwd)
   const candidates = names.get(path.slice(path.lastIndexOf('/') + 1)) ?? []
-  const matches = path.includes('/') ? candidates.filter(p => p.endsWith(`/${path}`)) : candidates
+  const own = `${cwd.split(/[\\/]/).filter(Boolean).pop() ?? ''}/`
+  const matches = path.includes('/') ? candidates.filter(p => p.endsWith(`/${path}`) || own + p === path) : candidates
   if (!matches.length) return null
   const ranked = [...matches].sort((a, b) => depth(a) - depth(b) || a.length - b.length)
   const [first, second] = ranked

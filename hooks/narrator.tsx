@@ -11,8 +11,8 @@ type Narration = { isActive: boolean; abort: AbortController }
 type LinuxSpeech = { tool?: 'spd-say' | 'espeak-ng' | 'espeak'; languages: Set<string> }
 
 const STORE_KEY = 'narratorEnabled'
-const SWITCH_ON = { label: '⏵ narrator on', color: PALETTE.green }
-const SWITCH_OFF = { label: '⏸︎ narrator off', color: PALETTE.comment }
+const SWITCH_ON = { label: '󰕾', color: PALETTE.green }
+const SWITCH_OFF = { label: '󰖁', color: PALETTE.comment }
 const MAX_ACTIONS = 40
 const DETAILS = ['description', 'file_path', 'notebook_path', 'path', 'pattern', 'url', 'query', 'skill', 'command', 'prompt']
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:[-_][a-z0-9]{2,8})*$/i

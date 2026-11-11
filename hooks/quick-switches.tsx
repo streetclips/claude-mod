@@ -50,7 +50,7 @@ export async function renderQuickSwitches($: EngineInterface, { Box, Button, Tex
           <Text color={model.includes(m.match) ? PALETTE.green : PALETTE.comment}>{` ${m.letter}`}</Text>
         </Button>
       ))}
-      <Text color={PALETTE.comment}> ·</Text>
+      <Text color={PALETTE.comment}> /</Text>
       {EFFORTS.map(x => (
         <Button
           key={`effort-${x.short}`}
@@ -64,6 +64,7 @@ export async function renderQuickSwitches($: EngineInterface, { Box, Button, Tex
           <Text color={x.level === level ? PALETTE.green : PALETTE.comment}>{` ${x.short}`}</Text>
         </Button>
       ))}
+      <Text color={PALETTE.comment}> /</Text>
     </Box>
   )
 }

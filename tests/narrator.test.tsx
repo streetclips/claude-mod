@@ -143,11 +143,9 @@ test('the switch goes after the mode labels, and alone where there are none', as
   world(on)
   await startSession($)
   const alone = await footer($)
-  expect(await alone.find({ type: 'Text', text: ' · ' })).toBeUndefined()
   await alone.unmount()
   const labelled = await footer($, ['focus'])
   expect(await labelled.find({ key: 'engine' })).toBeDefined()
-  expect(await labelled.find({ type: 'Text', text: ' · ' })).toBeDefined()
   expect(await labelled.find({ key: 'narrator' })).toBeDefined()
 })
 

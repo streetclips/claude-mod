@@ -267,9 +267,9 @@ export const registerNarrator: Register = (on, options) => {
     return (
       <Box flexDirection="row">
         {hasBeneath ? beneath : null}
-        {hasBeneath ? <Text color={PALETTE.comment}> · </Text> : null}
+        {hasBeneath ? <Text> </Text> : null}
         {quick}
-        <Text> </Text>
+        <Text>  </Text>
         <Button key="narrator" plain onPress={() => void setEnabled($)}>
           <Text color={color}>{label}</Text>
         </Button>

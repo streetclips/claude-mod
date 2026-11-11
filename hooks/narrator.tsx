@@ -4,6 +4,7 @@ import type { EngineInterface, Register, RenderNode, ToolCallInput, ToolCallResu
 import { LINUX, MACOS, WINDOWS, powershell } from './narrator-speaker'
 import { cut, guessLanguage, parseNarration, plain } from './narrator-text'
 import { PALETTE } from './palette'
+import { renderQuickSwitches, restoreQuickSwitches } from './quick-switches'
 
 type Platform = 'macos' | 'windows' | 'linux' | 'other'
 type Command = { argv: string[]; env: Record<string, string> }
@@ -224,6 +225,7 @@ export const registerNarrator: Register = (on, options) => {
     })
     const isEnabled = (await $.store.get(STORE_KEY)) === true
     await update($, enabled, () => isEnabled)
+    await restoreQuickSwitches($)
     return next(e)
   })
 
@@ -260,11 +262,14 @@ export const registerNarrator: Register = (on, options) => {
     const hasBeneath = e.props.modes.length > 0 || !isBlank(beneath)
     const { Box, Button, Text } = $.ui.resolve(e)
     const { label, color } = isEnabled ? SWITCH_ON : SWITCH_OFF
+    const quick = await renderQuickSwitches($, { Box, Button, Text })
 
     return (
       <Box flexDirection="row">
         {hasBeneath ? beneath : null}
         {hasBeneath ? <Text color={PALETTE.comment}> · </Text> : null}
+        {quick}
+        <Text> </Text>
         <Button key="narrator" plain onPress={() => void setEnabled($)}>
           <Text color={color}>{label}</Text>
         </Button>

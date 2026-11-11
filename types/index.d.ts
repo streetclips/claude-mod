@@ -13,6 +13,8 @@ declare module 'claude-code' {
   interface PluginState {
     'alejandrocantero-claude-mod': {
       narratorEnabled: boolean
+      quickEffort: string
+      quickTick: number
       turns: Record<string, TurnStats>
       openDetails: StateFamily<number[]>
       fileRefs: StateFamily<{ text: string; refs: Record<string, FileRef> }>

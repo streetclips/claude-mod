@@ -4,8 +4,8 @@ import type { EngineInterface, RenderNode } from 'claude-code'
 import { PALETTE } from './palette'
 
 const MODELS = [
-  { letter: 'o', alias: 'opus', match: 'opus' },
   { letter: 's', alias: 'sonnet', match: 'sonnet' },
+  { letter: 'o', alias: 'opus', match: 'opus' },
   { letter: 'f', alias: 'fable', match: 'fable' },
 ]
 const EFFORTS = [

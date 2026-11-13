@@ -37,7 +37,7 @@ Then `/reload-plugins`. If the boxes do not change, restart Claude Code.
 
 1. **Prompt and reply boxes.** Every message you send and every reply Claude writes is drawn in its own padded, coloured box.
 2. **Themed markdown.** Headings, `inline code`, **bold**, links, bullets and quotes each get a colour from the palette. Code blocks and tables keep Claude Code's own rendering.
-3. **Clickable paths.** Files and folders named in a reply (`hooks/markdown.tsx:36`, `src/util.ts`, `~/.config/herdr-app`) open with a click: text files in an editor tab of the Herdr desktop app, everything else with the system's `open`. A bare filename is resolved in the workspace, `node_modules` and `vendor` aside, and opens when only one file can be meant; a name found nowhere there is looked for in the folders the same reply names (`/tmp/videos/ (before.mp4 and after.mp4)`). Requires `"tui": "fullscreen"`.
+3. **Clickable paths.** Files and folders named in a reply (`hooks/markdown.tsx:36`, `src/util.ts`, `~/.config/herdr-app`) open with a click: text files in the space's ttt (or an editor tab) of the Herdr desktop app, everything else with the system's `open`. A bare filename is resolved in the workspace, `node_modules` and `vendor` aside, and opens when only one file can be meant; a name found nowhere there is looked for in the folders the same reply names (`/tmp/videos/ (before.mp4 and after.mp4)`). Requires `"tui": "fullscreen"`.
 4. **Turn footer.** Finish time, duration, input and output tokens, context change, tool count, and files changed with added and removed lines.
 5. **Narrator.** After each turn, Claude says out loud what it did, in the language it answered in, with the best free voice installed (Siri on macOS, OneCore on Windows, speech-dispatcher or espeak-ng on Linux). Toggle it with the speaker button (`󰕾` on, `󰖁` off; needs a Nerd Font) in the prompt footer or with `/narrator [on | off | stop]`. The setting survives across sessions.
 
@@ -91,7 +91,7 @@ To change the colours, edit `PROMPT_BG` and `REPLY_BG` in `hooks/register.tsx` a
 
 ## Opening files in Herdr's editor
 
-Inside the Herdr desktop app (`HC_TERMINAL_ID` set and `herdr-app status` answering), a click on a text file runs `herdr-app do tab.new` with the `compact-editor` mod, the file in its `props`, so the file opens in a new editor tab of the selected space. The line and column travel in `props` too, though the editor opens at the top. Outside the app, in the older `herdr`, or when the tab cannot open, the click falls back to `open`.
+Inside the Herdr desktop app (`HC_TERMINAL_ID` set and `herdr-app status` answering), a click on a text file runs `herdr-app do compact-tabs.open:<url-encoded JSON>` with the file, line, column and this terminal, so the file opens at that line in the ttt of the space this Claude Code runs in (herdr-compact's IDE tab, started if it isn't running). Without compact-tabs, it runs `herdr-app do tab.new` with the `compact-editor` mod and the file in its `props`. Outside the app, in the older `herdr`, or when the tab cannot open, the click falls back to `open`.
 
 ## License
 

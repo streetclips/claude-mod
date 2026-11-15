@@ -5,6 +5,7 @@ import { renderMarkdown } from './markdown'
 import { noteTool, noteTurn, registerNarrator } from './narrator'
 import { openFile } from './open-file'
 import { PALETTE } from './palette'
+import { registerQuickSwitches } from './quick-switches'
 import { countTool, registerTurnStats, startTurnStats } from './turn-stats'
 
 const openDetails = atom({ plugin: 'alejandrocantero-claude-mod', key: 'openDetails' } as const, [])
@@ -28,6 +29,7 @@ function lookUp($: EngineInterface, e: { requestId: string }, text: string) {
 export const register: Register = (on, options) => {
   registerTurnStats(on, options)
   registerNarrator(on, options)
+  registerQuickSwitches(on, options)
 
   on('turn.start', async ($, e, next) => {
     await startTurnStats($)

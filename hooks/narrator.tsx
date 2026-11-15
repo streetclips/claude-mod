@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderNode, ToolCallInput, ToolCallResult, TurnStartInput } from 'claude-code'
+import type { EngineInterface, Register, RenderNode, ToolCallInput, ToolCallResult, TurnCompleteInput, TurnStartInput } from 'claude-code'
 
 import { LINUX, MACOS, WINDOWS, powershell } from './narrator-speaker'
 import { cut, guessLanguage, parseNarration, plain } from './narrator-text'
@@ -210,23 +210,26 @@ export async function noteTool($: EngineInterface, e: ToolCallInput, result: Too
   actions.push(describe(e) + ('deny' in result ? ' (denied)' : result.isError ? ' (failed)' : ''))
 }
 
+export async function startNarrator($: EngineInterface) {
+  await $.command.register({
+    name: 'narrator',
+    description: 'Claude tells you out loud what it did after each turn · no argument: switch on or off',
+    argumentHint: '[on | off | stop]',
+    immediate: true,
+  })
+  const isEnabled = (await $.store.get(STORE_KEY)) === true
+  await update($, enabled, () => isEnabled)
+}
+
+export async function narrateTurn($: EngineInterface, e: TurnCompleteInput) {
+  if (e.agentId === undefined && e.reason === 'answer' && e.answer.trim() && (await read($, enabled))) void narrate($, e.answer)
+}
+
 export const registerNarrator: Register = (on, options) => {
   settings = {
     voice: String(options.narratorVoice ?? '').trim(),
     model: String(options.narratorModel || 'haiku'),
   }
-
-  on('session.start', async ($, e, next) => {
-    await $.command.register({
-      name: 'narrator',
-      description: 'Claude tells you out loud what it did after each turn · no argument: switch on or off',
-      argumentHint: '[on | off | stop]',
-      immediate: true,
-    })
-    const isEnabled = (await $.store.get(STORE_KEY)) === true
-    await update($, enabled, () => isEnabled)
-    return next(e)
-  })
 
   on('session.end', ($, e, next) => {
     silence()
@@ -248,12 +251,6 @@ export const registerNarrator: Register = (on, options) => {
     silence()
     return next(e)
   }).catch(($, e, next) => next(e))
-
-  on('turn.complete', async ($, e, next) => {
-    const result = await next(e)
-    if (e.agentId === undefined && e.reason === 'answer' && e.answer.trim() && (await read($, enabled))) void narrate($, e.answer)
-    return result
-  })
 
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const isEnabled = await read($, enabled)

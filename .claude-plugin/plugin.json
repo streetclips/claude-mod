@@ -1,7 +1,7 @@
 {
   "name": "alejandrocantero-claude-mod",
   "displayName": "alejandrocantero.dev/claude-mod",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "description": "A themed terminal interface for Claude Code by Alejandro Cantero (alejandrocantero.dev): padded prompt/reply boxes, coloured markdown, clickable file paths, a turn footer and an optional spoken narrator.",
   "types": "./types/index.d.ts",
   "userConfig": {
@@ -16,6 +16,25 @@
       "title": "Model that writes the narration",
       "description": "An alias (haiku) or a full model id.",
       "default": "haiku"
+    },
+    "keepWarm": {
+      "type": "string",
+      "title": "Keep the prompt cache warm",
+      "description": "While you are away, ping the conversation shortly before its prompt cache expires, so your next prompt reads it instead of writing it again. Pick the cache your session runs on: 1h on a subscription within its plan, 5m on an API key or usage credits. off: never ping.",
+      "options": [
+        "off",
+        "1h",
+        "5m"
+      ],
+      "default": "off"
+    },
+    "keepWarmPings": {
+      "type": "number",
+      "title": "Keep-warm pings per pause",
+      "description": "Most pings in a row while you are away (1-24); each keeps the cache one more TTL.",
+      "default": 4,
+      "min": 1,
+      "max": 24
     }
   },
   "license": "MIT",

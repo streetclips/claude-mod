@@ -1,11 +1,12 @@
 import { atom, memberOf, read, update, type EngineInterface, type Register } from 'claude-code'
 
 import { fileRefs, forgetFiles, type FileRef } from './file-links'
+import { configureKeepWarm, keepWarmRequest, keepWarmTurnComplete, keepWarmTurnStart } from './keep-warm'
 import { renderMarkdown } from './markdown'
-import { noteTool, noteTurn, registerNarrator } from './narrator'
+import { narrateTurn, noteTool, noteTurn, registerNarrator, startNarrator } from './narrator'
 import { openFile } from './open-file'
 import { PALETTE } from './palette'
-import { registerQuickSwitches } from './quick-switches'
+import { noteStepEffort, registerQuickSwitches } from './quick-switches'
 import { countTool, registerTurnStats, startTurnStats } from './turn-stats'
 
 const openDetails = atom({ plugin: 'alejandrocantero-claude-mod', key: 'openDetails' } as const, [])
@@ -30,11 +31,33 @@ export const register: Register = (on, options) => {
   registerTurnStats(on, options)
   registerNarrator(on, options)
   registerQuickSwitches(on, options)
+  configureKeepWarm(options)
+
+  on('session.start', async ($, e, next) => {
+    await startNarrator($)
+    return next(e)
+  })
 
   on('turn.start', async ($, e, next) => {
+    keepWarmTurnStart(e)
     await startTurnStats($)
     noteTurn(e)
     return next(e)
+  })
+
+  on('turn.step', async function* ($, e, next) {
+    await keepWarmRequest($, e)
+    await noteStepEffort($, e)
+    return yield* next(e)
+  }).catch(async function* ($, e, next) {
+    return yield* next(e)
+  })
+
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    await keepWarmTurnComplete($, e)
+    await narrateTurn($, e)
+    return result
   })
 
   on('tool.call', async ($, e, next) => {

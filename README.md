@@ -40,6 +40,7 @@ Then `/reload-plugins`. If the boxes do not change, restart Claude Code.
 3. **Clickable paths.** Files and folders named in a reply (`hooks/markdown.tsx:36`, `src/util.ts`, `~/.config/herdr-app`) open with a click: text files in the space's ttt (or an editor tab) of the Herdr desktop app, everything else with the system's `open`. A bare filename is resolved in the workspace, `node_modules` and `vendor` aside, and opens when only one file can be meant; a name found nowhere there is looked for in the folders the same reply names (`/tmp/videos/ (before.mp4 and after.mp4)`). Requires `"tui": "fullscreen"`.
 4. **Turn footer.** Finish time, duration, input and output tokens, context change, tool count, and files changed with added and removed lines.
 5. **Narrator.** After each turn, Claude says out loud what it did, in the language it answered in, with the best free voice installed (Siri on macOS, OneCore on Windows, speech-dispatcher or espeak-ng on Linux). Toggle it with the speaker button (`󰕾` on, `󰖁` off; needs a Nerd Font) in the prompt footer or with `/narrator [on | off | stop]`. The setting survives across sessions.
+6. **Warm prompt cache (opt-in).** While you are away, it pings the conversation shortly before its prompt cache expires (55 minutes after the last request on the 1-hour cache, 4 minutes on the 5-minute one), so your next prompt reads the cache instead of writing it again. Each ping is one tool-less fork of the conversation (`$.model.fork`): it reads the cached prefix, answers `ok` and stays out of the transcript, where a dim line says how many tokens it read. It stops after a set number of pings, when you send a prompt (the count starts over at the end of that turn), or when a ping finds the cache already cold.
 
 ## Configuration
 
@@ -47,6 +48,10 @@ In `/config`:
 
 1. **Narrator voice**: a voice name (`Mónica`, `Microsoft Helena`) to always speak with. Empty picks the best voice for the language.
 2. **Model that writes the narration**: `haiku` by default.
+3. **Keep the prompt cache warm**: `off` (default), `1h` or `5m`. Pick the cache your session runs on: `1h` on a subscription within its plan, `5m` on an API key, usage credits or with `FORCE_PROMPT_CACHING_5M=1`.
+4. **Keep-warm pings per pause**: 4 by default (1–24). With the 1-hour cache, 4 pings keep it warm for about 4 hours 40 minutes away.
+
+A ping costs a cache read of the whole conversation (0.1× the input price), a cold cache a write of it (1.25× for 5 minutes, 2× for an hour). On a subscription it saves the wait and the usage of rebuilding the cache, not money.
 
 For better voices on macOS, download a Siri or Premium voice in System Settings → Accessibility → Spoken Content → System voice → Manage Voices.
 
@@ -62,7 +67,10 @@ hooks/hooks.json
                     ├──── ui.render AssistantMessage ───► box + markdown + file links
                     │                                     (paths looked up after the box)
                     ├──── turn.start / tool.call ───────► turn-stats.tsx → footer
+                    ├──── turn.step ────────────────────► quick-switches.tsx → effort lit
+                    │                                     keep-warm.ts → time of the request
                     ├──── turn.complete ────────────────► narrator.tsx → speech
+                    │                                     keep-warm.ts → arms the ping
                     └──── session.start ────────────────► registers /narrator
 ```
 
@@ -76,6 +84,7 @@ hooks/hooks.json
 | `hooks/narrator.tsx` | `/narrator` command, toggle button and speech |
 | `hooks/narrator-speaker.ts` | Picks a synthesizer per platform |
 | `hooks/narrator-text.ts` | Cuts the narration and strips it to plain text |
+| `hooks/keep-warm.ts` | Pings the prompt cache before it expires while you are away |
 | `hooks/palette.ts` | The colour palette |
 | `types/index.d.ts` | The plugin's state contract |
 
@@ -84,7 +93,7 @@ hooks/hooks.json
 ```
 claude --plugin-dir .      # try the working copy without installing it
 claude plugin validate .   # manifest and hook checks
-claude plugin test .       # 52 tests
+claude plugin test .       # 72 tests
 ```
 
 To change the colours, edit `PROMPT_BG` and `REPLY_BG` in `hooks/register.tsx` and `MD` in `hooks/markdown.tsx`. To ship a change, follow `CLAUDE.md`.

@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderNode } from 'claude-code'
+import type { EngineInterface, Register, RenderNode, TurnStepInput } from 'claude-code'
 
 import { PALETTE } from './palette'
 
@@ -56,14 +56,11 @@ async function run($: EngineInterface, command: string, args: string) {
   await update($, tick, n => n + 1)
 }
 
-export const registerQuickSwitches: Register = on => {
-  on('turn.step', async function* ($, e, next) {
-    if (e.agentId === undefined && isLevel(e.effort)) await see($, modelKey(e.model), e.effort)
-    return yield* next(e)
-  }).catch(async function* ($, e, next) {
-    return yield* next(e)
-  })
+export async function noteStepEffort($: EngineInterface, e: TurnStepInput) {
+  if (e.agentId === undefined && isLevel(e.effort)) await see($, modelKey(e.model), e.effort)
+}
 
+export const registerQuickSwitches: Register = on => {
   on('command.run', { command: 'effort' }, async ($, e, next) => {
     const result = await next(e)
     const level = e.args.trim().toLowerCase()

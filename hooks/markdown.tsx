@@ -176,7 +176,7 @@ export function renderMarkdown(
       i++
       while (i < lines.length && !close.test(lines[i] ?? '')) body.push(lines[i++] ?? '')
       i++
-      push(<Code source={body.join('\n')} language={fence[2] || undefined} />)
+      push(<Code source={body.map(l => l.trim() ? l : ' ').join('\n')} language={fence[2] || undefined} />)
       continue
     }
 

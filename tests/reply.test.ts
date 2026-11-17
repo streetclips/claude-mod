@@ -20,6 +20,17 @@ test('longer fence keeps inner fences and closes before the next block', async (
   expect(json).not.toContain('**Two**')
 })
 
+test('blank lines inside a fence reach the code element as a space, so they keep their row', async ($) => {
+  const ui = await $.ui.mount({
+    plugin: 'alejandrocantero-claude-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'm-blank',
+    viewport: { columns: 100, rows: 40 },
+    props: { text: 'Intro\n\n```\nA\n\nB\n\n\nC\n```\n\nOutro', isFirstOfReply: true },
+  } as any)
+  const code = await ui.find({ type: 'Code' })
+  expect(code?.props.source).toBe('A\n \nB\n \n \nC')
+  await ui.unmount()
+})
+
 test('details start collapsed and a press opens them', async ($) => {
   const ui = await $.ui.mount({
     plugin: 'alejandrocantero-claude-mod', surface: 'terminal', component: 'AssistantMessage', requestId: 'm3',
